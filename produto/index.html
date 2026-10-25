@@ -50,7 +50,7 @@ h1,h2,h3,.quote{font-family:Georgia,'Times New Roman',serif;font-weight:400;lett
 <div class="status" id="status"></div><p class="desc" id="description"></p>
 <div class="specs" id="specs"></div>
 <div class="shipping"><h2>Calcular frete</h2><p>Informe o CEP de entrega para consultar PAC e SEDEX.</p><div class="shiprow"><input id="cep" inputmode="numeric" maxlength="9" placeholder="00000-000" aria-label="CEP de entrega"><button id="calcFrete" type="button">Calcular</button></div><div id="shipResult" class="shipresult"></div></div>
-<a id="interest" class="btn" href="#">Quero este vaso</a></div></section></main>
+<a id="interest" class="btn" href="#">Adicionar ao carrinho</a></div></section></main>
 <script>
 const SUPABASE_URL='https://cmzeojsbqrckvrcdhgqz.supabase.co';
 const SUPABASE_KEY='sb_publishable_yd_g8vW-7zMLNsh_NA0Ivg_Iqz2C_gg';
@@ -69,7 +69,7 @@ async function load(){
  const vals=[['Altura',p.height_cm?p.height_cm+' cm':''],['Diâmetro',p.diameter_cm?p.diameter_cm+' cm':''],['Cor',p.color||''],['Acabamento',p.finish||''],['Coleção',p.collection||''],['Edição',p.edition||'']];
  specs.innerHTML=vals.filter(x=>x[1]).map(x=>'<div class="spec"><span>'+x[0]+'</span><strong>'+x[1]+'</strong></div>').join('');
  const msg=encodeURIComponent('Olá! Tenho interesse na peça '+(p.name||'')+(p.code?' ('+p.code+')':'')+' da RSMF Cerâmica.');
- interest.href='https://www.instagram.com/rsmf.ceramica/'; interest.target='_blank';
+
  document.getElementById('error').hidden=true;document.getElementById('product').hidden=false;
 }
 const FRETE_API='https://rsmf-api.rsmfreire.workers.dev/frete';
