@@ -83,6 +83,7 @@ interest.addEventListener("click",function(e){
  const cart=getCart();
  cart.push({id:currentProduct.id,slug:currentProduct.slug,name:currentProduct.name,price:Number(currentProduct.price||0),image:currentProduct.cover_image_url||"",quantity:1});
  saveCart(cart);
+  window.location.href="/carrinho/";
 });
 const FRETE_API='https://rsmf-api.rsmfreire.workers.dev/frete';
 function brl(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
