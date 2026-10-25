@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Entrega · RSMF Cerâmica</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:#050505;
+  color:#f5f3ee;
+  font-family:Arial,sans-serif;
+}
+header{
+  padding:24px 20px;
+  border-bottom:1px solid #333;
+}
+header a{
+  color:#f5f3ee;
+  text-decoration:none;
+  font-size:18px;
+}
+main{
+  max-width:700px;
+  margin:auto;
+  padding:38px 20px 60px;
+}
+h1{
+  margin:0 0 10px;
+  font-size:42px;
+}
+.intro{
+  color:#aaa;
+  margin-bottom:34px;
+  line-height:1.5;
+}
+.card{
+  background:#171717;
+  padding:24px;
+  margin-bottom:20px;
+}
+h2{
+  margin:0 0 20px;
+  font-size:23px;
+}
+label{
+  display:block;
+  margin:16px 0 7px;
+  font-size:14px;
+  color:#ccc;
+}
+input{
+  width:100%;
+  padding:15px;
+  border:1px solid #555;
+  background:#080808;
+  color:white;
+  font-size:16px;
+}
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+button{
+  width:100%;
+  border:0;
+  padding:17px;
+  margin-top:20px;
+  background:#f5f3ee;
+  color:#111;
+  font-size:17px;
+  font-weight:bold;
+  cursor:pointer;
+}
+button:disabled{
+  opacity:.5;
+}
+#status{
+  margin-top:16px;
+  color:#bbb;
+}
+.option{
+  display:block;
+  border:1px solid #444;
+  padding:18px;
+  margin-top:12px;
+  cursor:pointer;
+}
+.option input{
+  width:auto;
+  margin-right:10px;
+}
+.option strong{
+  display:block;
+  margin:0 0 5px 27px;
+}
+.option small{
+  display:block;
+  color:#aaa;
+  margin-left:27px;
+}
+.total{
+  display:flex;
+  justify-content:space-between;
+  font-size:22px;
+  font-weight:bold;
+  margin-top:20px;
+}
+#shippingOptions,
+#summary{
+  display:none;
+}
+@media(max-width:520px){
+  .row{grid-template-columns:1fr}
+  h1{font-size:36px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <a href="/carrinho/">← Voltar ao carrinho</a>
+</header>
+
+<main>
+
+<h1>Entrega</h1>
+<p class="intro">
+Informe o endereço para calcular as opções de envio do seu pedido.
+</p>
+
+<section class="card">
+<h2>Endereço de entrega</h2>
+
+<label for="name">Nome completo</label>
+<input id="name" autocomplete="name">
+
+<label for="cep">CEP</label>
+<input id="cep" inputmode="numeric" maxlength="9" placeholder="00000-000">
+
+<label for="street">Endereço</label>
+<input id="street" autocomplete="street-address">
+
+<div class="row">
+  <div>
+    <label for="number">Número</label>
+    <input id="number">
+  </div>
+
+  <div>
+    <label for="complement">Complemento</label>
+    <input id="complement">
+  </div>
+</div>
+
+<label for="district">Bairro</label>
+<input id="district">
+
+<div class="row">
+  <div>
+    <label for="city">Cidade</label>
+    <input id="city">
+  </div>
+
+  <div>
+    <label for="state">UF</label>
+    <input id="state" maxlength="2">
+  </div>
+</div>
+
+<button id="calculate">Calcular frete</button>
+
+<div id="status"></div>
+</section>
+
+<section class="card" id="shippingOptions">
+<h2>Escolha a entrega</h2>
+<div id="options"></div>
+</section>
+
+<section class="card" id="summary">
+<h2>Resumo</h2>
+
+<div class="total">
+  <span>Produtos</span>
+  <span id="subtotal">R$ 0,00</span>
+</div>
+
+<div class="total">
+  <span>Frete</span>
+  <span id="shippingPrice">R$ 0,00</span>
+</div>
+
+<div class="total">
+  <span>Total</span>
+  <span id="grandTotal">R$ 0,00</span>
+</div>
+
+<button id="continue" disabled>Continuar para pagamento</button>
+</section>
+
+</main>
+
+<script>
+const CART_KEY="rsmf_cart";
+const CHECKOUT_KEY="rsmf_checkout";
+const FRETE_API="https://rsmf-api.rsmfreire.workers.dev/frete";
+
+function getCart(){
+  try{
+    return JSON.parse(localStorage.getItem(CART_KEY)||"[]");
+  }catch(e){
+    return [];
+  }
+}
+
+function money(v){
+  return Number(v||0).toLocaleString("pt-BR",{
+    style:"currency",
+    currency:"BRL"
+  });
+}
+
+function maskCep(v){
+  v=v.replace(/\D/g,"").slice(0,8);
+  return v.length>5 ? v.slice(0,5)+"-"+v.slice(5) : v;
+}
+
+function subtotal(){
+  return getCart().reduce((sum,item)=>{
+    return sum+(Number(item.price)||0)*(Number(item.quantity)||1);
+  },0);
+}
+
+const cep=document.getElementById("cep");
+const statusEl=document.getElementById("status");
+const shippingBox=document.getElementById("shippingOptions");
+const optionsEl=document.getElementById("options");
+const summary=document.getElementById("summary");
+const continueButton=document.getElementById("continue");
+
+let selectedShipping=null;
+
+cep.addEventListener("input",e=>{
+  e.target.value=maskCep(e.target.value);
+});
+
+document.getElementById("subtotal").textContent=money(subtotal());
+
+document.getElementById("calculate").addEventListener("click",async()=>{
+  const cleanCep=cep.value.replace(/\D/g,"");
+
+  if(cleanCep.length!==8){
+    statusEl.textContent="Informe um CEP válido.";
+    return;
+  }
+
+  if(!getCart().length){
+    statusEl.textContent="Seu carrinho está vazio.";
+    return;
+  }
+
+  statusEl.textContent="Calculando frete...";
+  shippingBox.style.display="none";
+  summary.style.display="none";
+  optionsEl.innerHTML="";
+  selectedShipping=null;
+  continueButton.disabled=true;
+
+  try{
+    const response=await fetch(
+      FRETE_API+"?cep="+encodeURIComponent(cleanCep)
+    );
+
+    if(!response.ok){
+      throw new Error("Erro ao calcular frete");
+    }
+
+    const data=await response.json();
+
+    const services=Array.isArray(data)
+      ? data.filter(item=>item && !item.error && item.price)
+      : [];
+
+    if(!services.length){
+      statusEl.textContent="Nenhuma opção de entrega disponível para este CEP.";
+      return;
+    }
+
+    statusEl.textContent="";
+    shippingBox.style.display="block";
+
+    services.forEach(service=>{
+      const label=document.createElement("label");
+      label.className="option";
+
+      const days=service.delivery_time
+        ? service.delivery_time+" dia(s)"
+        : "Prazo informado pela transportadora";
+
+      label.innerHTML=
+        '<input type="radio" name="shipping">'+
+        '<strong>'+service.name+' · '+money(service.price)+'</strong>'+
+        '<small>Prazo estimado: '+days+'</small>';
+
+      label.querySelector("input").addEventListener("change",()=>{
+        selectedShipping={
+          id:service.id,
+          name:service.name,
+          price:Number(service.price),
+          delivery_time:service.delivery_time
+        };
+
+        const productsTotal=subtotal();
+        const freight=selectedShipping.price;
+
+        document.getElementById("subtotal").textContent=money(productsTotal);
+        document.getElementById("shippingPrice").textContent=money(freight);
+        document.getElementById("grandTotal").textContent=money(productsTotal+freight);
+
+        summary.style.display="block";
+        continueButton.disabled=false;
+      });
+
+      optionsEl.appendChild(label);
+    });
+
+  }catch(error){
+    statusEl.textContent="Não foi possível calcular o frete. Tente novamente.";
+  }
+});
+
+continueButton.addEventListener("click",()=>{
+  if(!selectedShipping) return;
+
+  const checkout={
+    customer:{
+      name:document.getElementById("name").value.trim()
+    },
+    address:{
+      cep:cep.value.trim(),
+      street:document.getElementById("street").value.trim(),
+      number:document.getElementById("number").value.trim(),
+      complement:document.getElementById("complement").value.trim(),
+      district:document.getElementById("district").value.trim(),
+      city:document.getElementById("city").value.trim(),
+      state:document.getElementById("state").value.trim().toUpperCase()
+    },
+    shipping:selectedShipping,
+    subtotal:subtotal(),
+    total:subtotal()+selectedShipping.price
+  };
+
+  localStorage.setItem(CHECKOUT_KEY,JSON.stringify(checkout));
+
+  alert("Próxima etapa: pagamento via Pix.");
+});
+</script>
+
+</body>
+</html>
+
