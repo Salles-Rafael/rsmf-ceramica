@@ -56,12 +56,14 @@ const SUPABASE_URL='https://cmzeojsbqrckvrcdhgqz.supabase.co';
 const SUPABASE_KEY='sb_publishable_yd_g8vW-7zMLNsh_NA0Ivg_Iqz2C_gg';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const q=new URLSearchParams(location.search), slug=q.get('slug'), id=q.get('id');
+let currentProduct=null;
 async function load(){
  let query=sb.from('products').select('*');
  if(slug) query=query.eq('slug',slug); else if(id) query=query.eq('id',id); else {document.getElementById('error').textContent='Peça não encontrada.';return}
  const {data:p,error}=await query.single();
  if(error||!p){document.getElementById('error').textContent='Esta peça não está disponível.';return}
  document.title=p.name+' · RSMF Cerâmica'; photo.src=p.cover_image_url||'';photo.alt=p.name||'Peça RSMF Cerâmica';
+ currentProduct=p;
  code.textContent=p.code?'RSMF Cerâmica · '+p.code:'RSMF Cerâmica';name.textContent=p.name||'Peça sem nome';
  price.textContent=Number(p.price||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
  status.textContent=(p.stock>0&&p.status==='available')?'Disponível':'Indisponível';
@@ -72,6 +74,16 @@ async function load(){
 
  document.getElementById('error').hidden=true;document.getElementById('product').hidden=false;
 }
+const CART_KEY="rsmf_cart";
+function getCart(){try{return JSON.parse(localStorage.getItem(CART_KEY)||"[]")}catch(e){return []}}
+function saveCart(cart){localStorage.setItem(CART_KEY,JSON.stringify(cart))}
+interest.addEventListener("click",function(e){
+ e.preventDefault();
+ if(!currentProduct)return;
+ const cart=getCart();
+ cart.push({id:currentProduct.id,slug:currentProduct.slug,name:currentProduct.name,price:Number(currentProduct.price||0),image:currentProduct.cover_image_url||"",quantity:1});
+ saveCart(cart);
+});
 const FRETE_API='https://rsmf-api.rsmfreire.workers.dev/frete';
 function brl(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function maskCep(v){v=v.replace(/\D/g,'').slice(0,8);return v.length>5?v.slice(0,5)+'-'+v.slice(5):v}
