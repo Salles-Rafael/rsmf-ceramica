@@ -23,89 +23,142 @@ header{
 header a{
   color:#f5f3ee;
   text-decoration:none;
-  font-size:18px;
+  font-size:14px;
 }
 
 main{
-  max-width:700px;
-  margin:auto;
-  padding:42px 20px 80px;
+  width:min(680px,calc(100% - 32px));
+  margin:40px auto 70px;
 }
 
 h1{
-  margin:0 0 12px;
-  font-size:42px;
+  margin:0 0 10px;
+  font-size:32px;
 }
 
 .intro{
-  color:#999;
-  font-size:18px;
-  line-height:1.6;
-  margin-bottom:36px;
+  color:#aaa;
+  line-height:1.5;
+  margin-bottom:28px;
 }
 
 .card{
-  border:1px solid #222;
-  padding:28px;
-  margin-bottom:24px;
+  border:1px solid #2d2d2d;
+  background:#0d0d0d;
+  border-radius:18px;
+  padding:22px;
+  margin-bottom:18px;
 }
 
-h2{
-  margin-top:0;
-  font-size:26px;
+.card h2{
+  margin:0 0 18px;
+  font-size:20px;
 }
 
 .row{
   display:flex;
   justify-content:space-between;
   gap:20px;
-  padding:12px 0;
-  font-size:18px;
+  padding:10px 0;
+  color:#bbb;
+}
+
+.row strong{
+  color:#f5f3ee;
 }
 
 .total{
+  margin-top:10px;
+  padding-top:18px;
   border-top:1px solid #333;
-  margin-top:12px;
-  padding-top:20px;
+  font-size:20px;
+}
+
+.total strong{
   font-size:24px;
-  font-weight:bold;
-}
-
-.pix{
-  text-align:center;
-}
-
-.pix-title{
-  font-size:22px;
-  font-weight:bold;
-  margin-bottom:12px;
-}
-
-.pix-info{
-  color:#aaa;
-  line-height:1.6;
 }
 
 button{
   width:100%;
-  margin-top:22px;
-  padding:20px;
   border:0;
-  background:#55534f;
-  color:white;
-  font-size:19px;
-  font-weight:bold;
+  border-radius:12px;
+  padding:16px 18px;
+  background:#f5f3ee;
+  color:#090909;
+  font-size:16px;
+  font-weight:700;
+  cursor:pointer;
 }
 
 button:disabled{
   opacity:.55;
+  cursor:wait;
 }
 
-#error{
-  display:none;
-  margin-top:18px;
-  color:#d9a9a9;
+#message{
+  margin-top:14px;
+  color:#bbb;
   line-height:1.5;
+}
+
+#pixResult{
+  display:none;
+  margin-top:22px;
+  text-align:center;
+}
+
+#qrImage{
+  display:block;
+  width:240px;
+  max-width:100%;
+  margin:18px auto;
+  background:#fff;
+  padding:12px;
+  border-radius:12px;
+}
+
+.pix-label{
+  text-align:left;
+  font-size:14px;
+  color:#aaa;
+  margin:18px 0 8px;
+}
+
+#pixCode{
+  width:100%;
+  min-height:110px;
+  resize:none;
+  border:1px solid #333;
+  border-radius:12px;
+  padding:13px;
+  background:#050505;
+  color:#f5f3ee;
+  font-size:13px;
+  line-height:1.45;
+}
+
+.copy{
+  margin-top:10px;
+  background:#222;
+  color:#fff;
+  border:1px solid #444;
+}
+
+.expiration{
+  margin-top:14px;
+  color:#999;
+  font-size:13px;
+}
+
+.sandbox{
+  margin-top:18px;
+  padding:12px;
+  border:1px solid #4d4322;
+  border-radius:10px;
+  color:#d8c780;
+  background:#171407;
+  font-size:13px;
+  line-height:1.4;
 }
 </style>
 </head>
@@ -117,91 +170,247 @@ button:disabled{
 </header>
 
 <main>
+  <h1>Pagamento</h1>
 
-<h1>Pagamento</h1>
-
-<p class="intro">
-Confira o seu pedido. O pagamento será realizado via Pix.
-</p>
-
-<section class="card">
-  <h2>Resumo do pedido</h2>
-
-  <div class="row">
-    <span>Produto</span>
-    <strong id="subtotal">R$ 0,00</strong>
-  </div>
-
-  <div class="row">
-    <span id="shippingName">Frete</span>
-    <strong id="shipping">R$ 0,00</strong>
-  </div>
-
-  <div class="row total">
-    <span>Total</span>
-    <span id="total">R$ 0,00</span>
-  </div>
-</section>
-
-<section class="card pix">
-  <div class="pix-title">Pagamento via Pix</div>
-
-  <p class="pix-info">
-    Na próxima etapa será gerado o QR Code Pix e o código
-    Pix Copia e Cola para pagamento seguro.
+  <p class="intro">
+    Confira o seu pedido. O pagamento será realizado via Pix.
   </p>
 
-  <button id="pay" type="button">
-    Gerar Pix
-  </button>
+  <section class="card">
+    <h2>Resumo do pedido</h2>
 
-  <div id="error"></div>
-</section>
+    <div class="row">
+      <span>Produto</span>
+      <strong id="subtotal">—</strong>
+    </div>
 
+    <div class="row">
+      <span id="shippingName">Frete</span>
+      <strong id="shippingPrice">—</strong>
+    </div>
+
+    <div class="row total">
+      <span>Total</span>
+      <strong id="total">—</strong>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Pagamento via Pix</h2>
+
+    <p class="intro">
+      Gere o QR Code Pix para concluir o pagamento.
+    </p>
+
+    <button id="generatePix">
+      Gerar Pix
+    </button>
+
+    <div id="message"></div>
+
+    <div id="pixResult">
+      <img id="qrImage" alt="QR Code Pix">
+
+      <div class="pix-label">
+        Pix Copia e Cola
+      </div>
+
+      <textarea
+        id="pixCode"
+        readonly
+      ></textarea>
+
+      <button
+        id="copyPix"
+        class="copy"
+        type="button"
+      >
+        Copiar código Pix
+      </button>
+
+      <div
+        id="expiration"
+        class="expiration"
+      ></div>
+    </div>
+
+    <div class="sandbox">
+      Ambiente de testes PagBank Sandbox.
+      Nenhum pagamento real será processado nesta etapa.
+    </div>
+  </section>
 </main>
 
 <script>
-const CHECKOUT_KEY="rsmf_checkout";
+const CHECKOUT_KEY = "rsmf_checkout";
 
-function money(value){
-  return Number(value || 0).toLocaleString(
+const PIX_API =
+  "https://rsmf-pagbank.rsmfreire.workers.dev/pix";
+
+const checkoutRaw =
+  localStorage.getItem(CHECKOUT_KEY);
+
+if (!checkoutRaw) {
+  window.location.href = "/carrinho/";
+}
+
+let checkout;
+
+try {
+  checkout = JSON.parse(checkoutRaw);
+} catch {
+  localStorage.removeItem(CHECKOUT_KEY);
+  window.location.href = "/carrinho/";
+}
+
+const money = value =>
+  Number(value || 0).toLocaleString(
     "pt-BR",
-    {style:"currency",currency:"BRL"}
+    {
+      style:"currency",
+      currency:"BRL"
+    }
   );
-}
 
-let checkout=null;
+document.getElementById("subtotal").textContent =
+  money(checkout.subtotal);
 
-try{
-  checkout=JSON.parse(localStorage.getItem(CHECKOUT_KEY) || "null");
-}catch(e){
-  checkout=null;
-}
+document.getElementById("shippingName").textContent =
+  checkout.shipping?.name
+    ? `Frete · ${checkout.shipping.name}`
+    : "Frete";
 
-if(!checkout){
-  window.location.href="/carrinho/";
-}else{
-  document.getElementById("subtotal").textContent=
-    money(checkout.subtotal);
+document.getElementById("shippingPrice").textContent =
+  money(checkout.shipping?.price);
 
-  document.getElementById("shipping").textContent=
-    money(checkout.shipping?.price);
+document.getElementById("total").textContent =
+  money(checkout.total);
 
-  document.getElementById("shippingName").textContent=
-    checkout.shipping?.name
-      ? "Frete · " + checkout.shipping.name
-      : "Frete";
+const generateButton =
+  document.getElementById("generatePix");
 
-  document.getElementById("total").textContent=
-    money(checkout.total);
-}
+const message =
+  document.getElementById("message");
 
-document.getElementById("pay").addEventListener("click",()=>{
-  const error=document.getElementById("error");
-  error.style.display="block";
-  error.textContent=
-    "Integração Pix em preparação. Nenhuma cobrança foi realizada.";
-});
+const pixResult =
+  document.getElementById("pixResult");
+
+const qrImage =
+  document.getElementById("qrImage");
+
+const pixCode =
+  document.getElementById("pixCode");
+
+const expiration =
+  document.getElementById("expiration");
+
+generateButton.addEventListener(
+  "click",
+  async () => {
+    generateButton.disabled = true;
+    generateButton.textContent =
+      "Gerando Pix...";
+
+    message.textContent =
+      "Conectando ao PagBank...";
+
+    pixResult.style.display = "none";
+
+    try {
+      const response = await fetch(
+        PIX_API,
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            total:Number(checkout.total)
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(
+          data.error ||
+          "Não foi possível gerar o Pix."
+        );
+      }
+
+      if (!data.pix?.text) {
+        throw new Error(
+          "O PagBank não retornou o código Pix."
+        );
+      }
+
+      pixCode.value = data.pix.text;
+
+      if (data.pix.image) {
+        qrImage.src = data.pix.image;
+        qrImage.style.display = "block";
+      } else {
+        qrImage.style.display = "none";
+      }
+
+      if (data.pix.expiration_date) {
+        const date =
+          new Date(data.pix.expiration_date);
+
+        expiration.textContent =
+          "Pix válido até " +
+          date.toLocaleString("pt-BR");
+      } else {
+        expiration.textContent = "";
+      }
+
+      pixResult.style.display = "block";
+
+      message.textContent =
+        "Pix gerado com sucesso.";
+
+      generateButton.textContent =
+        "Gerar novo Pix";
+
+    } catch (error) {
+      message.textContent =
+        "Erro: " + error.message;
+
+      generateButton.textContent =
+        "Tentar novamente";
+    } finally {
+      generateButton.disabled = false;
+    }
+  }
+);
+
+document.getElementById("copyPix")
+  .addEventListener(
+    "click",
+    async () => {
+      try {
+        await navigator.clipboard.writeText(
+          pixCode.value
+        );
+
+        const button =
+          document.getElementById("copyPix");
+
+        button.textContent =
+          "Código Pix copiado";
+
+        setTimeout(() => {
+          button.textContent =
+            "Copiar código Pix";
+        }, 2000);
+
+      } catch {
+        pixCode.select();
+        document.execCommand("copy");
+      }
+    }
+  );
 </script>
 
 </body>
