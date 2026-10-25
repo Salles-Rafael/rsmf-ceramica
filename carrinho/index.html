@@ -4,31 +4,112 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Carrinho · RSMF Cerâmica</title>
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#f5f3ee;color:#171717;font-family:Arial,sans-serif}
-header{padding:24px 20px;border-bottom:1px solid #ddd8cf;background:#fff}
-header a{color:#171717;text-decoration:none}
-main{max-width:900px;margin:auto;padding:32px 20px}
-h1{margin:0 0 28px;font-size:32px}
-#empty{display:none;padding:40px 0;text-align:center}
-.item{display:grid;grid-template-columns:100px 1fr auto;gap:18px;align-items:center;padding:18px 0;border-bottom:1px solid #d7d2c8}
-.item img{width:100px;height:100px;object-fit:cover;background:#ddd}
-.item h2{font-size:18px;margin:0 0 8px}
-.price{font-weight:bold}
-.controls{display:flex;align-items:center;gap:10px;margin-top:12px}
-button{border:1px solid #222;background:#fff;padding:8px 12px;cursor:pointer}
-.remove{border:0;padding:0;color:#666;text-decoration:underline}
-.summary{margin-top:30px;padding:24px;background:#fff}
-.total{display:flex;justify-content:space-between;font-size:21px;font-weight:bold}
-.checkout{display:block;margin-top:20px;padding:15px;text-align:center;background:#171717;color:#fff;text-decoration:none}
+body{
+  margin:0;
+  background:#11110e;
+  color:#f5f3ee;
+  font-family:Arial,sans-serif
+}
+header{
+  padding:24px 20px;
+  border-bottom:1px solid #49473f
+}
+header a{
+  color:#f5f3ee;
+  text-decoration:none;
+  font-size:18px
+}
+main{
+  max-width:900px;
+  margin:auto;
+  padding:36px 20px
+}
+h1{
+  font-size:36px;
+  margin:0 0 32px
+}
+#empty{
+  display:none;
+  padding:40px 0
+}
+#empty a{color:#f5f3ee}
+.item{
+  display:grid;
+  grid-template-columns:100px 1fr auto;
+  gap:18px;
+  align-items:center;
+  padding:20px 0;
+  border-bottom:1px solid #49473f
+}
+.item img{
+  width:100px;
+  height:100px;
+  object-fit:cover
+}
+.item h2{
+  margin:0 0 8px;
+  font-size:20px
+}
+.price{
+  font-size:18px;
+  font-weight:bold
+}
+.controls{
+  display:flex;
+  align-items:center;
+  gap:10px
+}
+.controls button{
+  border:1px solid #777;
+  background:transparent;
+  color:#f5f3ee;
+  padding:8px 12px;
+  font-size:18px
+}
+.remove{
+  border:0!important;
+  font-size:14px!important;
+  text-decoration:underline
+}
+.summary{
+  margin-top:30px;
+  padding:24px;
+  background:#1d1d1d
+}
+.total{
+  display:flex;
+  justify-content:space-between;
+  font-size:24px;
+  font-weight:bold;
+  margin-bottom:24px
+}
+.checkout{
+  display:block;
+  padding:18px;
+  text-align:center;
+  background:#000;
+  color:#fff;
+  text-decoration:none;
+  font-size:18px
+}
 @media(max-width:600px){
-.item{grid-template-columns:80px 1fr}
-.item img{width:80px;height:80px}
-.item-total{grid-column:2}
+  .item{
+    grid-template-columns:80px 1fr
+  }
+  .item img{
+    width:80px;
+    height:80px
+  }
+  .controls{
+    grid-column:2
+  }
 }
 </style>
 </head>
+
 <body>
 
 <header>
@@ -50,11 +131,130 @@ button{border:1px solid #222;background:#fff;padding:8px 12px;cursor:pointer}
 <span>Subtotal</span>
 <span id="subtotal">R$ 0,00</span>
 </div>
-<a class="checkout" href="#" id="checkout">Continuar para entrega</a>
+
+<a class="checkout" href="#" id="checkout">
+Continuar para entrega
+</a>
 </div>
 </main>
 
 <script>
 const CART_KEY="rsmf_cart";
 
-function getCart
+function getCart(){
+  try{
+    return JSON.parse(localStorage.getItem(CART_KEY)||"[]");
+  }catch(e){
+    return [];
+  }
+}
+
+function saveCart(cart){
+  localStorage.setItem(CART_KEY,JSON.stringify(cart));
+}
+
+function brl(value){
+  return Number(value||0).toLocaleString("pt-BR",{
+    style:"currency",
+    currency:"BRL"
+  });
+}
+
+function changeQuantity(index,change){
+  const cart=getCart();
+
+  if(!cart[index]) return;
+
+  cart[index].quantity=Math.max(
+    1,
+    Number(cart[index].quantity||1)+change
+  );
+
+  saveCart(cart);
+  render();
+}
+
+function removeItem(index){
+  const cart=getCart();
+  cart.splice(index,1);
+  saveCart(cart);
+  render();
+}
+
+function render(){
+  const cart=getCart();
+  const items=document.getElementById("items");
+  const empty=document.getElementById("empty");
+  const summary=document.getElementById("summary");
+
+  items.innerHTML="";
+
+  if(!cart.length){
+    empty.style.display="block";
+    summary.style.display="none";
+    return;
+  }
+
+  empty.style.display="none";
+  summary.style.display="block";
+
+  let total=0;
+
+  cart.forEach((item,index)=>{
+    const quantity=Number(item.quantity||1);
+    const price=Number(item.price||0);
+
+    total+=price*quantity;
+
+    const row=document.createElement("div");
+    row.className="item";
+
+    const image=item.image
+      ? `<img src="${item.image}" alt="">`
+      : `<div></div>`;
+
+    row.innerHTML=`
+      ${image}
+      <div>
+        <h2>${item.name||item.slug||"Peça RSMF"}</h2>
+        <div class="price">${brl(price)}</div>
+      </div>
+
+      <div class="controls">
+        <button type="button" data-minus="${index}">−</button>
+        <span>${quantity}</span>
+        <button type="button" data-plus="${index}">+</button>
+        <button type="button" class="remove"
+          data-remove="${index}">Remover</button>
+      </div>
+    `;
+
+    items.appendChild(row);
+  });
+
+  document.getElementById("subtotal").textContent=brl(total);
+}
+
+document.addEventListener("click",function(e){
+  const minus=e.target.dataset.minus;
+  const plus=e.target.dataset.plus;
+  const remove=e.target.dataset.remove;
+
+  if(minus!==undefined) changeQuantity(Number(minus),-1);
+  if(plus!==undefined) changeQuantity(Number(plus),1);
+  if(remove!==undefined) removeItem(Number(remove));
+});
+
+document.getElementById("checkout").addEventListener("click",function(e){
+  e.preventDefault();
+
+  if(!getCart().length) return;
+
+  alert("Próxima etapa: endereço e entrega.");
+});
+
+render();
+</script>
+
+</body>
+</html>
