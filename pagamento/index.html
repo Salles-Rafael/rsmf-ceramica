@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pagamento · RSMF Cerâmica</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:#050505;
+  color:#f5f3ee;
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+header{
+  padding:24px 20px;
+  border-bottom:1px solid #333;
+}
+
+header a{
+  color:#f5f3ee;
+  text-decoration:none;
+  font-size:18px;
+}
+
+main{
+  max-width:700px;
+  margin:auto;
+  padding:42px 20px 80px;
+}
+
+h1{
+  margin:0 0 12px;
+  font-size:42px;
+}
+
+.intro{
+  color:#999;
+  font-size:18px;
+  line-height:1.6;
+  margin-bottom:36px;
+}
+
+.card{
+  border:1px solid #222;
+  padding:28px;
+  margin-bottom:24px;
+}
+
+h2{
+  margin-top:0;
+  font-size:26px;
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  padding:12px 0;
+  font-size:18px;
+}
+
+.total{
+  border-top:1px solid #333;
+  margin-top:12px;
+  padding-top:20px;
+  font-size:24px;
+  font-weight:bold;
+}
+
+.pix{
+  text-align:center;
+}
+
+.pix-title{
+  font-size:22px;
+  font-weight:bold;
+  margin-bottom:12px;
+}
+
+.pix-info{
+  color:#aaa;
+  line-height:1.6;
+}
+
+button{
+  width:100%;
+  margin-top:22px;
+  padding:20px;
+  border:0;
+  background:#55534f;
+  color:white;
+  font-size:19px;
+  font-weight:bold;
+}
+
+button:disabled{
+  opacity:.55;
+}
+
+#error{
+  display:none;
+  margin-top:18px;
+  color:#d9a9a9;
+  line-height:1.5;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <a href="/entrega/">← Voltar para entrega</a>
+</header>
+
+<main>
+
+<h1>Pagamento</h1>
+
+<p class="intro">
+Confira o seu pedido. O pagamento será realizado via Pix.
+</p>
+
+<section class="card">
+  <h2>Resumo do pedido</h2>
+
+  <div class="row">
+    <span>Produto</span>
+    <strong id="subtotal">R$ 0,00</strong>
+  </div>
+
+  <div class="row">
+    <span id="shippingName">Frete</span>
+    <strong id="shipping">R$ 0,00</strong>
+  </div>
+
+  <div class="row total">
+    <span>Total</span>
+    <span id="total">R$ 0,00</span>
+  </div>
+</section>
+
+<section class="card pix">
+  <div class="pix-title">Pagamento via Pix</div>
+
+  <p class="pix-info">
+    Na próxima etapa será gerado o QR Code Pix e o código
+    Pix Copia e Cola para pagamento seguro.
+  </p>
+
+  <button id="pay" type="button">
+    Gerar Pix
+  </button>
+
+  <div id="error"></div>
+</section>
+
+</main>
+
+<script>
+const CHECKOUT_KEY="rsmf_checkout";
+
+function money(value){
+  return Number(value || 0).toLocaleString(
+    "pt-BR",
+    {style:"currency",currency:"BRL"}
+  );
+}
+
+let checkout=null;
+
+try{
+  checkout=JSON.parse(localStorage.getItem(CHECKOUT_KEY) || "null");
+}catch(e){
+  checkout=null;
+}
+
+if(!checkout){
+  window.location.href="/carrinho/";
+}else{
+  document.getElementById("subtotal").textContent=
+    money(checkout.subtotal);
+
+  document.getElementById("shipping").textContent=
+    money(checkout.shipping?.price);
+
+  document.getElementById("shippingName").textContent=
+    checkout.shipping?.name
+      ? "Frete · " + checkout.shipping.name
+      : "Frete";
+
+  document.getElementById("total").textContent=
+    money(checkout.total);
+}
+
+document.getElementById("pay").addEventListener("click",()=>{
+  const error=document.getElementById("error");
+  error.style.display="block";
+  error.textContent=
+    "Integração Pix em preparação. Nenhuma cobrança foi realizada.";
+});
+</script>
+
+</body>
+</html>
