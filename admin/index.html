@@ -1,0 +1,95 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#171714"><title>RSMF Cerâmica ADMIN</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#eee9df;--ink:#171714;--muted:#68645b;--paper:#f8f5ee;--line:#d5cec1;--terr:#b85c45;--sage:#657c68}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--ink)}header{position:sticky;top:0;z-index:4;background:#f8f5eef2;border-bottom:1px solid var(--line);padding:16px 5vw;display:flex;align-items:center;justify-content:space-between}.logo{font-weight:900;font-size:22px}.tag{font-size:10px;letter-spacing:2px;color:var(--muted)}main{max-width:900px;margin:auto;padding:24px 5vw 80px}.card{background:var(--paper);border:1px solid var(--line);padding:22px;margin-bottom:18px}.hidden{display:none!important}h1,h2{font-family:Georgia,serif;margin:0 0 8px}h1{font-size:36px}h2{font-size:27px}.sub{color:var(--muted);line-height:1.5;margin:0 0 20px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}label{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:bold}input,textarea,select{width:100%;margin-top:6px;padding:13px;border:1px solid var(--line);background:#fff;font:inherit}textarea{min-height:90px}button{border:0;background:var(--ink);color:#fff;padding:13px 17px;font-weight:bold}.secondary{background:transparent;color:var(--ink);border:1px solid var(--ink)}.danger{background:var(--terr)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.product{display:grid;grid-template-columns:82px 1fr;gap:14px;padding:14px 0;border-top:1px solid var(--line)}.product img{width:82px;height:82px;object-fit:cover;background:#ddd}.product h3{margin:2px 0 6px;font-family:Georgia,serif}.meta{font-size:12px;color:var(--muted)}.notice{padding:12px;margin:12px 0;background:#fff;border-left:4px solid var(--sage);font-size:13px}.login{max-width:430px;margin:8vh auto}.preview{max-width:180px;max-height:180px;object-fit:cover;margin-top:10px;display:none}
+@media(max-width:650px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+
+
+/* RSMF Cerâmica — identidade editorial 2026 */
+:root{--bg:#f2eee5;--ink:#242820;--muted:#706c61;--terracotta:#a76b47;--cobalt:#384d60;--ochre:#b89965;--sage:#535e45;--paper:#f7f3e9;--line:#d7d0c2;--card:#faf7f0}
+html{scroll-behavior:smooth}body{background:var(--bg);color:var(--ink);font-family:'Helvetica Neue',Arial,sans-serif;letter-spacing:.005em}
+h1,h2,h3,.quote{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:-.045em}
+.nav{background:#f8f5ee!important;border-bottom:1px solid #d8d0c2!important;box-shadow:none!important}
+.logo{font-family:Georgia,serif!important;font-weight:400!important;letter-spacing:-.055em!important;font-size:clamp(24px,3vw,36px)!important}
+.navlinks a{letter-spacing:.1em;text-transform:uppercase;font-size:11px!important}
+.hero{background:#e9e5d9!important;color:#22281e!important;position:relative;overflow:hidden}
+.hero h1{font-size:clamp(60px,9vw,130px)!important;line-height:.96!important;max-width:850px}
+.hero .kicker,.section .kicker,.eyebrow{letter-spacing:.23em!important;text-transform:uppercase!important;font-size:11px!important;color:#8c674a!important}
+.hero p{max-width:550px;line-height:1.7!important}
+.cta,.buy{background:#4c5740!important;color:#fff!important;border-radius:2px!important;letter-spacing:.08em!important;text-transform:uppercase!important;font-size:12px!important;padding:17px 24px!important;transition:background .2s ease,transform .2s ease}
+.cta:hover,.buy:hover{background:#a56a49!important;transform:translateY(-2px)}
+.heroart{filter:saturate(.7);opacity:.84}
+.section{background:#f5f1e9!important}.section h2{font-size:clamp(43px,6vw,82px)!important;line-height:1.04!important}
+.grid{gap:22px!important}.product{background:#fbf8f2!important;border:1px solid #d8d0c2!important;box-shadow:none!important;padding-bottom:14px!important}
+.product .photo{background:#e9e3d7!important;overflow:hidden}.product .photo img{width:100%;height:100%;object-fit:cover;transition:transform .4s ease}.product:hover .photo img{transform:scale(1.035)}
+.product h3{font-size:clamp(24px,2.6vw,33px)!important}.product .price{color:#625e55!important}
+.about{background:#e4e3d8!important}.quote{font-style:italic;color:#4d5a43!important}
+.insta{background:#454f3e!important;color:#f7f3e9!important}.insta .cta{background:#f1e7d4!important;color:#263026!important}
+.footer{background:#252a24!important;color:#f2eee5!important}
+@media(max-width:700px){.hero h1{font-size:clamp(55px,14vw,84px)!important}.hero{padding-top:50px!important}.navlinks{gap:12px!important}.section{padding-top:64px!important;padding-bottom:64px!important}}
+</style></head><body><header><div><div class="logo">RSMF Cerâmica</div><div class="tag">ADMIN</div></div><div><button id="visualBtn" class="secondary hidden">Imagens</button> <button id="siteBtn" class="secondary hidden">Editar site</button> <button id="newBtn" class="hidden">+ Novo vaso</button> <button id="logoutBtn" class="secondary hidden">Sair</button></div></header><main>
+<section id="login" class="card login"><h1>RSMF Cerâmica ADMIN</h1><p class="sub">Entre para administrar os vasos da loja.</p><div class="grid"><label class="full">E-mail<input id="email" type="email"></label><label class="full">Senha<input id="password" type="password"></label></div><div class="actions"><button id="loginBtn">Entrar</button></div><div id="loginMsg"></div></section>
+<section id="app" class="hidden"><div class="card"><h1>Catálogo</h1><p class="sub">Cadastre e atualize as peças da RSMF Cerâmica.</p><div id="products">Carregando...</div></div>
+<div id="siteEditor" class="card hidden"><h2>Editar site</h2><p class="sub">Altere os textos da loja e salve.</p><div id="contentFields"></div><div class="actions"><button id="saveContentBtn">Salvar alterações</button><button id="closeContentBtn" class="secondary">Fechar</button></div><div id="contentMsg"></div></div>
+<div id="visualEditor" class="card hidden"><h2>Imagens e aparência</h2>
+<p class="sub">Escolha fotos da Galeria e controle as seções visíveis da loja.</p>
+<div class="grid">
+<label>Imagem principal<input id="heroPhoto" type="file" accept="image/*"><img id="heroPreview" class="preview"></label>
+<label>Imagem do ateliê<input id="studioPhoto" type="file" accept="image/*"><img id="studioPreview" class="preview"></label>
+<label>Imagem da coleção<input id="collectionPhoto" type="file" accept="image/*"><img id="collectionPreview" class="preview"></label>
+<label>Etiqueta RSMF Cerâmica<select id="show_label_card"><option value="true">Mostrar</option><option value="false">Ocultar</option></select></label>
+<label>Seção Ateliê<select id="show_studio"><option value="true">Mostrar</option><option value="false">Ocultar</option></select></label>
+<label>Seção Contato<select id="show_contact"><option value="true">Mostrar</option><option value="false">Ocultar</option></select></label>
+</div><div class="actions"><button id="saveVisualBtn">Salvar aparência</button><button id="closeVisualBtn" class="secondary">Fechar</button></div><div id="visualMsg"></div></div>
+<div id="editor" class="card hidden"><h2 id="editorTitle">Novo vaso</h2><input id="id" type="hidden"><input id="oldImage" type="hidden"><div class="grid">
+<label>Código<input id="code" placeholder="MRX-001"></label><label>Nome<input id="name" placeholder="Vaso Forma 01"></label><label class="full">Descrição<textarea id="description"></textarea></label>
+<label>Ordem na vitrine<input id="display_order" type="number" min="0" value="100"></label><label>Preço (R$)<input id="price" type="number" min="0" step=".01"></label><label>Estoque<input id="stock" type="number" min="0" value="1"></label>
+<label>Altura (cm)<input id="height_cm" type="number" min="0" step=".1"></label><label>Diâmetro (cm)<input id="diameter_cm" type="number" min="0" step=".1"></label>
+<label>Cor<input id="color"></label><label>Acabamento<input id="finish"></label><label>Coleção<input id="collection"></label><label>Edição<input id="edition"></label>
+<label>Situação<select id="status"><option value="available">Disponível</option><option value="reserved">Reservado</option><option value="sold">Vendido</option><option value="draft">Rascunho</option></select></label>
+<label>Foto<input id="photo" type="file" accept="image/*"><img id="preview" class="preview"></label></div>
+<div class="actions"><button id="saveBtn">Salvar vaso</button><button id="cancelBtn" class="secondary">Cancelar</button><button id="deleteBtn" class="danger hidden">Excluir</button></div><div id="saveMsg"></div></div></section></main>
+<script>
+const sb=supabase.createClient('https://cmzeojsbqrckvrcdhgqz.supabase.co','sb_publishable_yd_g8vW-7zMLNsh_NA0Ivg_Iqz2C_gg'),$=x=>document.getElementById(x);
+const fields=['code','name','description','display_order','price','stock','height_cm','diameter_cm','color','finish','collection','edition','status'];
+const slug=s=>(s||'vaso').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+function msg(id,t,b=true){$(id).innerHTML='<div class="notice">'+t+'</div>';if(!b)$(id).firstChild.style.borderLeftColor='#b85c45'}
+async function show(s){$('login').classList.toggle('hidden',!!s);$('app').classList.toggle('hidden',!s);$('newBtn').classList.toggle('hidden',!s);$('siteBtn').classList.toggle('hidden',!s);$('visualBtn').classList.toggle('hidden',!s);$('logoutBtn').classList.toggle('hidden',!s);if(s)load()}
+(async()=>{show((await sb.auth.getSession()).data.session);sb.auth.onAuthStateChange((_e,s)=>show(s))})();
+$('loginBtn').onclick=async()=>{msg('loginMsg','Entrando...');let{error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)msg('loginMsg','Não foi possível entrar: '+error.message,false)};
+$('logoutBtn').onclick=()=>sb.auth.signOut();$('newBtn').onclick=()=>edit();$('cancelBtn').onclick=()=>$('editor').classList.add('hidden');
+$('photo').onchange=e=>{let f=e.target.files[0];if(f){$('preview').src=URL.createObjectURL(f);$('preview').style.display='block'}};
+function edit(p=null){$('editor').classList.remove('hidden');$('editorTitle').textContent=p?'Editar vaso':'Novo vaso';$('id').value=p?.id||'';$('oldImage').value=p?.cover_image_url||'';fields.forEach(k=>$(k).value=p?.[k]??(k==='stock'?1:k==='status'?'available':''));$('preview').src=p?.cover_image_url||'';$('preview').style.display=p?.cover_image_url?'block':'none';$('photo').value='';$('deleteBtn').classList.toggle('hidden',!p);$('editor').scrollIntoView({behavior:'smooth'})}
+async function load(){let{data,error}=await sb.from('products').select('*').order('display_order',{ascending:true}).order('created_at',{ascending:false});if(error){$('products').textContent=error.message;return}$('products').innerHTML=data.length?'':'<p class="sub">Nenhum vaso cadastrado. Toque em “+ Novo vaso”.</p>';data.forEach(p=>{let d=document.createElement('div');d.className='product';let im=document.createElement('img');if(p.cover_image_url)im.src=p.cover_image_url;let i=document.createElement('div');let h=document.createElement('h3');h.textContent=p.name;let m=document.createElement('div');m.className='meta';m.textContent=(p.code||'')+' · R$ '+Number(p.price||0).toFixed(2).replace('.',',')+' · '+p.status+' · estoque '+p.stock;let b=document.createElement('button');b.className='secondary';b.textContent='Editar';b.onclick=()=>edit(p);i.append(h,m,b);d.append(im,i);$('products').append(d)})}
+$('saveBtn').onclick=async()=>{if(!$('name').value.trim()||!$('code').value.trim())return msg('saveMsg','Informe código e nome.',false);$('saveBtn').disabled=true;try{let image=$('oldImage').value,f=$('photo').files[0];if(f){let ext=(f.name.split('.').pop()||'jpg').toLowerCase(),path=Date.now()+'-'+slug($('code').value)+'.'+ext;let{error}=await sb.storage.from('product-images').upload(path,f);if(error)throw error;image=sb.storage.from('product-images').getPublicUrl(path).data.publicUrl}let p={};fields.forEach(k=>p[k]=$(k).value);p.display_order=Number(p.display_order||100);p.price=Number(p.price||0);p.stock=Number(p.stock||0);p.height_cm=p.height_cm?Number(p.height_cm):null;p.diameter_cm=p.diameter_cm?Number(p.diameter_cm):null;p.slug=slug(p.code+'-'+p.name);p.cover_image_url=image||null;p.updated_at=new Date().toISOString();let q=$('id').value?sb.from('products').update(p).eq('id',$('id').value):sb.from('products').insert(p),{error}=await q;if(error)throw error;msg('saveMsg','Vaso salvo com sucesso.');await load();setTimeout(()=>$('editor').classList.add('hidden'),600)}catch(e){msg('saveMsg','Erro: '+e.message,false)}finally{$('saveBtn').disabled=false}};
+$('deleteBtn').onclick=async()=>{if(!confirm('Excluir este vaso?'))return;let{error}=await sb.from('products').delete().eq('id',$('id').value);if(error)return msg('saveMsg',error.message,false);$('editor').classList.add('hidden');load()};
+$('siteBtn').onclick=async()=>{$('siteEditor').classList.remove('hidden');$('editor').classList.add('hidden');await loadContent();$('siteEditor').scrollIntoView({behavior:'smooth'})};
+$('closeContentBtn').onclick=()=>$('siteEditor').classList.add('hidden');
+async function loadContent(){const {data,error}=await sb.from('site_content').select('*').order('sort_order');if(error){msg('contentMsg',error.message,false);return}const box=$('contentFields');box.innerHTML='';let last='';data.forEach(x=>{if(x.section!==last){let h=document.createElement('h3');h.textContent=x.section;h.style.marginTop='22px';box.appendChild(h);last=x.section}let lab=document.createElement('label');lab.textContent=x.label;let inp=(x.value.length>90||x.key.includes('text')||x.key.includes('quote'))?document.createElement('textarea'):document.createElement('input');inp.value=x.value;inp.dataset.key=x.key;inp.style.marginBottom='12px';lab.appendChild(inp);box.appendChild(lab)})}
+$('saveContentBtn').onclick=async()=>{$('saveContentBtn').disabled=true;msg('contentMsg','Salvando...');try{for(const el of document.querySelectorAll('#contentFields [data-key]')){const {error}=await sb.from('site_content').update({value:el.value,updated_at:new Date().toISOString()}).eq('key',el.dataset.key);if(error)throw error}msg('contentMsg','Alterações salvas. Atualize a loja para conferir.')}catch(e){msg('contentMsg','Erro: '+e.message,false)}finally{$('saveContentBtn').disabled=false}};
+$('visualBtn').onclick=async()=>{$('visualEditor').classList.remove('hidden');$('editor').classList.add('hidden');$('siteEditor').classList.add('hidden');await loadVisual();$('visualEditor').scrollIntoView({behavior:'smooth'})};
+$('closeVisualBtn').onclick=()=>$('visualEditor').classList.add('hidden');
+async function loadVisual(){
+ const {data,error}=await sb.from('site_content').select('key,value').in('key',['hero_image_url','studio_image_url','collection_image_url','show_label_card','show_studio','show_contact']);
+ if(error)return msg('visualMsg',error.message,false);const m=Object.fromEntries(data.map(x=>[x.key,x.value]));
+ ['show_label_card','show_studio','show_contact'].forEach(k=>$(k).value=m[k]||'true');
+ [['heroPreview','hero_image_url'],['studioPreview','studio_image_url'],['collectionPreview','collection_image_url']].forEach(([id,k])=>{if(m[k]){$(id).src=m[k];$(id).style.display='block'}else $(id).style.display='none'});
+}
+async function uploadSiteImage(file,key){
+ if(!file)return null;const ext=(file.name.split('.').pop()||'jpg').toLowerCase(),path='site/'+key+'-'+Date.now()+'.'+ext;
+ const {error}=await sb.storage.from('product-images').upload(path,file);if(error)throw error;
+ return sb.storage.from('product-images').getPublicUrl(path).data.publicUrl;
+}
+[['heroPhoto','heroPreview'],['studioPhoto','studioPreview'],['collectionPhoto','collectionPreview']].forEach(([i,p])=>$(i).onchange=e=>{const f=e.target.files[0];if(f){$(p).src=URL.createObjectURL(f);$(p).style.display='block'}});
+$('saveVisualBtn').onclick=async()=>{
+ $('saveVisualBtn').disabled=true;msg('visualMsg','Salvando...');
+ try{
+  const files=[['heroPhoto','hero_image_url'],['studioPhoto','studio_image_url'],['collectionPhoto','collection_image_url']];
+  for(const [id,key] of files){const url=await uploadSiteImage($(id).files[0],key);if(url){const {error}=await sb.from('site_content').update({value:url,updated_at:new Date().toISOString()}).eq('key',key);if(error)throw error}}
+  for(const key of ['show_label_card','show_studio','show_contact']){const {error}=await sb.from('site_content').update({value:$(key).value,updated_at:new Date().toISOString()}).eq('key',key);if(error)throw error}
+  msg('visualMsg','Imagens e aparência salvas.');
+ }catch(e){msg('visualMsg','Erro: '+e.message,false)}finally{$('saveVisualBtn').disabled=false}
+};
+</script></body></html>
