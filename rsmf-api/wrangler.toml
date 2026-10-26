@@ -7,11 +7,6 @@ binding = "RSMF_OAUTH"
 id = "05d9e993dd304af7aa9fa731195c12ec"
 
 [previews]
-
-[[previews.kv_namespaces]]
-binding = "RSMF_AUTH"
-id = "05d9e993dd304af7aa9fa731195c12ec"
-
-[[previews.kv_namespaces]]
-binding = "RSMF_OAUTH"
-id = "05d9e993dd304af7aa9fa731195c12ec"
+kv_namespaces = [
+  { binding = "RSMF_OAUTH", id = "05d9e993dd304af7aa9fa731195c12ec" }
+]
