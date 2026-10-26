@@ -37,7 +37,12 @@ function headers(env) {
 async function api(path, env, method = "GET", body = null) {
   const options = {
     method,
-    headers: headers(env)
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "User-Agent": USER_AGENT,
+      Authorization: `Bearer ${await obterTokenOAuth(env)}`
+    }
   };
 
   if (body) options.body = JSON.stringify(body);
@@ -78,6 +83,19 @@ export default {
       }
 
       if (path === "/melhor-envio/autorizar") {
+      const chave = request.headers.get("X-RSMF-Admin-Key");
+
+      if (
+        !env.RSMF_ADMIN_KEY ||
+        !chave ||
+        chave !== env.RSMF_ADMIN_KEY
+      ) {
+        return json({
+          ok: false,
+          erro: "Acesso administrativo nao autorizado"
+        }, 403);
+      }
+
         if (!env.MELHOR_ENVIO_CLIENT_ID) {
           return json({
             ok: false,
@@ -107,16 +125,34 @@ export default {
           "shipping-calculate shipping-companies"
         );
 
-        auth.searchParams.set(
-          "state",
-          "rsmf-ceramica"
+        const estado = gerarEstadoOAuth();
+        await env.RSMF_OAUTH.put(
+          "oauth_state:" + estado,
+          "pendente",
+          { expirationTtl: 600 }
         );
+        auth.searchParams.set("state", estado);
 
         return Response.redirect(auth.toString(), 302);
       }
 
       if (path === "/melhor-envio/callback") {
-        const code = url.searchParams.get("code");
+        const estado = url.searchParams.get("state");
+
+      if (!env.RSMF_OAUTH || !estado) {
+        return json({ ok: false, erro: "Estado OAuth ausente" }, 403);
+      }
+
+      const chaveEstado = "oauth_state:" + estado;
+      const estadoSalvo = await env.RSMF_OAUTH.get(chaveEstado);
+
+      if (estadoSalvo !== "pendente") {
+        return json({ ok: false, erro: "Estado OAuth invalido" }, 403);
+      }
+
+      await env.RSMF_OAUTH.delete(chaveEstado);
+
+      const code = url.searchParams.get("code");
 
         if (!code) {
           return json({
@@ -149,7 +185,14 @@ export default {
           }, r.status);
         }
 
-        return json({
+
+const dadosOAuth = await r.json();
+if (!dadosOAuth.access_token || !dadosOAuth.refresh_token) {
+  return json({ ok: false, erro: "Tokens OAuth ausentes" }, 502);
+}
+await salvarOAuth(env, dadosOAuth);
+
+return json({
           ok: true,
           mensagem: "OAuth de producao autorizado.",
           proxima_etapa:
@@ -158,7 +201,7 @@ export default {
       }
 
       if (path === "/servicos") {
-        if (!token(env)) {
+        if (!(await obterTokenOAuth(env))) {
           return json({
             ok: false,
             erro: "MELHOR_ENVIO_TOKEN nao configurado"
@@ -174,7 +217,7 @@ export default {
       }
 
       if (path === "/frete") {
-        if (!token(env)) {
+        if (!(await obterTokenOAuth(env))) {
           return json({
             ok: false,
             erro: "MELHOR_ENVIO_TOKEN nao configurado"
@@ -238,3 +281,78 @@ export default {
     }
   }
 };
+
+async function salvarOAuth(env, dados) {
+  if (!env.RSMF_OAUTH) {
+    throw new Error("Armazenamento OAuth indisponivel");
+  }
+
+  await env.RSMF_OAUTH.put(
+    "melhor_envio_tokens",
+    JSON.stringify({
+      access_token: dados.access_token,
+      refresh_token: dados.refresh_token,
+      expires_at: Date.now() + (dados.expires_in || 2592000) * 1000
+    })
+  );
+}
+
+async function obterTokenOAuth(env) {
+  if (env.RSMF_OAUTH) {
+    const dados = await env.RSMF_OAUTH.get(
+      "melhor_envio_tokens",
+      "json"
+    );
+
+    if (dados?.access_token) {
+      if (dados.expires_at > Date.now() + 60000) {
+        return dados.access_token;
+      }
+
+      return await renovarOAuth(env, dados);
+    }
+  }
+
+  return token(env);
+}
+
+async function renovarOAuth(env, dados) {
+  if (!dados?.refresh_token) return null;
+
+  const resposta = await fetch(BASE + "/oauth/token", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "User-Agent": USER_AGENT
+    },
+    body: JSON.stringify({
+      grant_type: "refresh_token",
+      refresh_token: dados.refresh_token,
+      client_id: env.MELHOR_ENVIO_CLIENT_ID,
+      client_secret: env.MELHOR_ENVIO_CLIENT_SECRET
+    })
+  });
+
+  if (!resposta.ok) {
+    throw new Error("Falha ao renovar OAuth");
+  }
+
+  const novosDados = await resposta.json();
+
+  if (!novosDados.access_token) {
+    throw new Error("Novo token OAuth ausente");
+  }
+
+  await salvarOAuth(env, {
+    ...novosDados,
+    refresh_token:
+      novosDados.refresh_token || dados.refresh_token
+  });
+
+  return novosDados.access_token;
+}
+
+function gerarEstadoOAuth() {
+  return crypto.randomUUID();
+}
