@@ -18,3 +18,4 @@ Secrets Cloudflare:
 - MELHOR_ENVIO_TOKEN
 
 Nunca versionar valores dos secrets.
+
