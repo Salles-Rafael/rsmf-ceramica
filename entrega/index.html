@@ -78,6 +78,11 @@ button{
 button:disabled{
   opacity:.5;
 }
+input.field-error{
+  border-color:#d9534f;
+  outline:2px solid rgba(217,83,79,.18);
+}
+
 #status{
   margin-top:16px;
   color:#bbb;
@@ -251,9 +256,55 @@ const continueButton=document.getElementById("continue");
 
 let selectedShipping=null;
 
+let lastAddressCep="";
+let addressLookupTimer=null;
+
+function clearAddressError(){
+  ["cep","street","number","district","city","state","name","email","taxId"].forEach(id=>{
+    document.getElementById(id)?.classList.remove("field-error");
+  });
+}
+
+async function lookupAddress(){
+  const cleanCep=cep.value.replace(/\D/g,"");
+  if(cleanCep.length!==8 || cleanCep===lastAddressCep) return;
+
+  statusEl.textContent="Buscando endereço...";
+  try{
+    const response=await fetch("https://viacep.com.br/ws/"+cleanCep+"/json/");
+    if(!response.ok) throw new Error("CEP não encontrado");
+    const data=await response.json();
+    if(data.erro) throw new Error("CEP não encontrado");
+
+    document.getElementById("street").value=data.logradouro || "";
+    document.getElementById("district").value=data.bairro || "";
+    document.getElementById("city").value=data.localidade || "";
+    document.getElementById("state").value=(data.uf || "").toUpperCase();
+    lastAddressCep=cleanCep;
+    statusEl.textContent="Endereço localizado. Informe o número e confira os dados.";
+    document.getElementById("number").focus();
+  }catch(error){
+    lastAddressCep="";
+    statusEl.textContent="CEP não encontrado. Confira o CEP ou preencha o endereço manualmente.";
+    cep.classList.add("field-error");
+  }
+}
+
 cep.addEventListener("input",e=>{
   e.target.value=maskCep(e.target.value);
+  lastAddressCep="";
+  selectedShipping=null;
+  shippingBox.style.display="none";
+  summary.style.display="none";
+  continueButton.disabled=true;
+  clearTimeout(addressLookupTimer);
+  const cleanCep=e.target.value.replace(/\D/g,"");
+  if(cleanCep.length===8){
+    addressLookupTimer=setTimeout(lookupAddress,250);
+  }
 });
+
+cep.addEventListener("blur",lookupAddress);
 
 const taxId=document.getElementById("taxId");
 taxId.addEventListener("input",e=>{
@@ -361,9 +412,25 @@ continueButton.addEventListener("click",()=>{
   const city=document.getElementById("city").value.trim();
   const state=document.getElementById("state").value.trim().toUpperCase();
 
-  if(!name || !email || cpf.length!==11 || !street || !number || !district || !city || state.length!==2){
-    statusEl.textContent="Preencha os dados do comprador e o endereço completo.";
-    window.scrollTo({top:0,behavior:"smooth"});
+  clearAddressError();
+  const required=[
+    ["name",!name],
+    ["email",!email || !document.getElementById("email").checkValidity()],
+    ["taxId",cpf.length!==11],
+    ["cep",cep.value.replace(/\D/g,"").length!==8],
+    ["street",!street],
+    ["number",!number],
+    ["district",!district],
+    ["city",!city],
+    ["state",state.length!==2]
+  ];
+  const invalid=required.filter(([,bad])=>bad);
+  if(invalid.length){
+    invalid.forEach(([id])=>document.getElementById(id).classList.add("field-error"));
+    statusEl.textContent="Confira os campos destacados antes de continuar.";
+    const first=document.getElementById(invalid[0][0]);
+    first.scrollIntoView({behavior:"smooth",block:"center"});
+    setTimeout(()=>first.focus(),350);
     return;
   }
 
