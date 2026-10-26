@@ -139,6 +139,12 @@ Informe o endereço para calcular as opções de envio do seu pedido.
 <label for="name">Nome completo</label>
 <input id="name" autocomplete="name">
 
+<label for="email">E-mail</label>
+<input id="email" type="email" autocomplete="email" inputmode="email">
+
+<label for="taxId">CPF</label>
+<input id="taxId" inputmode="numeric" maxlength="14" placeholder="000.000.000-00">
+
 <label for="cep">CEP</label>
 <input id="cep" inputmode="numeric" maxlength="9" placeholder="00000-000">
 
@@ -249,6 +255,15 @@ cep.addEventListener("input",e=>{
   e.target.value=maskCep(e.target.value);
 });
 
+const taxId=document.getElementById("taxId");
+taxId.addEventListener("input",e=>{
+  let v=e.target.value.replace(/\D/g,"").slice(0,11);
+  if(v.length>9) v=v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/,"$1.$2.$3-$4");
+  else if(v.length>6) v=v.replace(/(\d{3})(\d{3})(\d+)/,"$1.$2.$3");
+  else if(v.length>3) v=v.replace(/(\d{3})(\d+)/,"$1.$2");
+  e.target.value=v;
+});
+
 document.getElementById("subtotal").textContent=money(subtotal());
 
 document.getElementById("calculate").addEventListener("click",async()=>{
@@ -337,18 +352,31 @@ document.getElementById("calculate").addEventListener("click",async()=>{
 continueButton.addEventListener("click",()=>{
   if(!selectedShipping) return;
 
+  const name=document.getElementById("name").value.trim();
+  const email=document.getElementById("email").value.trim();
+  const cpf=document.getElementById("taxId").value.replace(/\D/g,"");
+  const street=document.getElementById("street").value.trim();
+  const number=document.getElementById("number").value.trim();
+  const district=document.getElementById("district").value.trim();
+  const city=document.getElementById("city").value.trim();
+  const state=document.getElementById("state").value.trim().toUpperCase();
+
+  if(!name || !email || cpf.length!==11 || !street || !number || !district || !city || state.length!==2){
+    statusEl.textContent="Preencha os dados do comprador e o endereço completo.";
+    window.scrollTo({top:0,behavior:"smooth"});
+    return;
+  }
+
   const checkout={
-    customer:{
-      name:document.getElementById("name").value.trim()
-    },
+    customer:{ name, email, tax_id:cpf },
     address:{
       cep:cep.value.trim(),
-      street:document.getElementById("street").value.trim(),
-      number:document.getElementById("number").value.trim(),
+      street,
+      number,
       complement:document.getElementById("complement").value.trim(),
-      district:document.getElementById("district").value.trim(),
-      city:document.getElementById("city").value.trim(),
-      state:document.getElementById("state").value.trim().toUpperCase()
+      district,
+      city,
+      state
     },
     shipping:selectedShipping,
     subtotal:subtotal(),
