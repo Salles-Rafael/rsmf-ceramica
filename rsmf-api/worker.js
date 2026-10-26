@@ -20,7 +20,9 @@ function json(data, status = 200) {
 }
 
 function token(env) {
-  return (env.MELHOR_ENVIO_TOKEN || "").trim();
+  return (env.MELHOR_ENVIO_TOKEN || "")
+    .trim()
+    .replace(/^Bearer\s+/i, "");
 }
 
 function headers(env) {
