@@ -65,8 +65,8 @@ function derToRawEcdsa(sig, size = 32) {
   const b = sig instanceof Uint8Array ? sig : new Uint8Array(sig);
   if (b[0] !== 0x30) return b;
   let i = 2; if (b[1] & 0x80) i = 2 + (b[1] & 0x7f);
-  if (b[i++] !== 0x02) return b; let rl = b[i++]; if (rl & 0x80) { const n=rl&0x7f; rl=0; while(n--) rl=(rl<<8)|b[i++]; }
-  let r=b.slice(i,i+rl); i+=rl; if (b[i++] !== 0x02) return b; let sl=b[i++]; if(sl&0x80){const n=sl&0x7f;sl=0;while(n--)sl=(sl<<8)|b[i++];}
+  if (b[i++] !== 0x02) return b; let rl = b[i++]; if (rl & 0x80) { let n=rl&0x7f; rl=0; while(n--) rl=(rl<<8)|b[i++]; }
+  let r=b.slice(i,i+rl); i+=rl; if (b[i++] !== 0x02) return b; let sl=b[i++]; if(sl&0x80){let n=sl&0x7f;sl=0;while(n--)sl=(sl<<8)|b[i++];}
   let s=b.slice(i,i+sl); while(r.length>size&&r[0]===0)r=r.slice(1); while(s.length>size&&s[0]===0)s=s.slice(1);
   const out=new Uint8Array(size*2); out.set(r.slice(-size),size-Math.min(size,r.length)); out.set(s.slice(-size),size*2-Math.min(size,s.length)); return out;
 }
