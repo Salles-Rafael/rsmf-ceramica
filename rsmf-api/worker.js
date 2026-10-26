@@ -209,8 +209,7 @@ export default {
             receipt: false,
             own_hand: false,
             collect: false
-          },
-          services: "1,2,3,4"
+          }
         };
 
         const r = await api(
