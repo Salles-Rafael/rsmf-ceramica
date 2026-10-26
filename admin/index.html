@@ -29,9 +29,9 @@ h1,h2,h3,.quote{font-family:Georgia,'Times New Roman',serif;font-weight:400;lett
 .insta{background:#454f3e!important;color:#f7f3e9!important}.insta .cta{background:#f1e7d4!important;color:#263026!important}
 .footer{background:#252a24!important;color:#f2eee5!important}
 @media(max-width:700px){.hero h1{font-size:clamp(55px,14vw,84px)!important}.hero{padding-top:50px!important}.navlinks{gap:12px!important}.section{padding-top:64px!important;padding-bottom:64px!important}}
-</style></head><body><header><div><div class="logo">RSMF Cerâmica</div><div class="tag">ADMIN</div></div><div><button id="visualBtn" class="secondary hidden">Imagens</button> <button id="siteBtn" class="secondary hidden">Editar site</button> <button id="newBtn" class="hidden">+ Novo vaso</button> <button id="logoutBtn" class="secondary hidden">Sair</button></div></header><main>
+</style></head><body><header><div><div class="logo">RSMF Cerâmica</div><div class="tag">ADMIN</div></div><div><button id="ordersBtn" class="secondary hidden">Pedidos</button> <button id="visualBtn" class="secondary hidden">Imagens</button> <button id="siteBtn" class="secondary hidden">Editar site</button> <button id="newBtn" class="hidden">+ Novo vaso</button> <button id="logoutBtn" class="secondary hidden">Sair</button></div></header><main>
 <section id="login" class="card login"><h1>RSMF Cerâmica ADMIN</h1><p class="sub">Entre para administrar os vasos da loja.</p><div class="grid"><label class="full">E-mail<input id="email" type="email"></label><label class="full">Senha<input id="password" type="password"></label></div><div class="actions"><button id="loginBtn">Entrar</button></div><div id="loginMsg"></div></section>
-<section id="app" class="hidden"><div class="card"><h1>Catálogo</h1><p class="sub">Cadastre e atualize as peças da RSMF Cerâmica.</p><div id="products">Carregando...</div></div>
+<section id="app" class="hidden"><div id="ordersPanel" class="card hidden"><h1>Pedidos</h1><p class="sub">Acompanhe pagamentos e a baixa automática do estoque.</p><div id="ordersList">Carregando...</div><div class="actions"><button id="refreshOrdersBtn" class="secondary">Atualizar pedidos</button><button id="closeOrdersBtn" class="secondary">Fechar</button></div><div id="ordersMsg"></div></div><div class="card"><h1>Catálogo</h1><p class="sub">Cadastre e atualize as peças da RSMF Cerâmica.</p><div id="products">Carregando...</div></div>
 <div id="siteEditor" class="card hidden"><h2>Editar site</h2><p class="sub">Altere os textos da loja e salve.</p><div id="contentFields"></div><div class="actions"><button id="saveContentBtn">Salvar alterações</button><button id="closeContentBtn" class="secondary">Fechar</button></div><div id="contentMsg"></div></div>
 <div id="visualEditor" class="card hidden"><h2>Imagens e aparência</h2>
 <p class="sub">Escolha fotos da Galeria e controle as seções visíveis da loja.</p>
@@ -56,7 +56,7 @@ const sb=supabase.createClient('https://cmzeojsbqrckvrcdhgqz.supabase.co','sb_pu
 const fields=['code','name','description','display_order','price','stock','height_cm','diameter_cm','color','finish','collection','edition','status'];
 const slug=s=>(s||'vaso').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 function msg(id,t,b=true){$(id).innerHTML='<div class="notice">'+t+'</div>';if(!b)$(id).firstChild.style.borderLeftColor='#b85c45'}
-async function show(s){$('login').classList.toggle('hidden',!!s);$('app').classList.toggle('hidden',!s);$('newBtn').classList.toggle('hidden',!s);$('siteBtn').classList.toggle('hidden',!s);$('visualBtn').classList.toggle('hidden',!s);$('logoutBtn').classList.toggle('hidden',!s);if(s)load()}
+async function show(s){$('login').classList.toggle('hidden',!!s);$('app').classList.toggle('hidden',!s);$('newBtn').classList.toggle('hidden',!s);$('siteBtn').classList.toggle('hidden',!s);$('visualBtn').classList.toggle('hidden',!s);$('ordersBtn').classList.toggle('hidden',!s);$('logoutBtn').classList.toggle('hidden',!s);if(s)load()}
 (async()=>{show((await sb.auth.getSession()).data.session);sb.auth.onAuthStateChange((_e,s)=>show(s))})();
 $('loginBtn').onclick=async()=>{msg('loginMsg','Entrando...');let{error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)msg('loginMsg','Não foi possível entrar: '+error.message,false)};
 $('logoutBtn').onclick=()=>sb.auth.signOut();$('newBtn').onclick=()=>edit();$('cancelBtn').onclick=()=>$('editor').classList.add('hidden');
@@ -64,6 +64,29 @@ $('photo').onchange=e=>{let f=e.target.files[0];if(f){$('preview').src=URL.creat
 function edit(p=null){$('editor').classList.remove('hidden');$('editorTitle').textContent=p?'Editar vaso':'Novo vaso';$('id').value=p?.id||'';$('oldImage').value=p?.cover_image_url||'';fields.forEach(k=>$(k).value=p?.[k]??(k==='stock'?1:k==='status'?'available':''));$('preview').src=p?.cover_image_url||'';$('preview').style.display=p?.cover_image_url?'block':'none';$('photo').value='';$('deleteBtn').classList.toggle('hidden',!p);$('editor').scrollIntoView({behavior:'smooth'})}
 async function load(){let{data,error}=await sb.from('products').select('*').order('display_order',{ascending:true}).order('created_at',{ascending:false});if(error){$('products').textContent=error.message;return}$('products').innerHTML=data.length?'':'<p class="sub">Nenhum vaso cadastrado. Toque em “+ Novo vaso”.</p>';data.forEach(p=>{let d=document.createElement('div');d.className='product';let im=document.createElement('img');if(p.cover_image_url)im.src=p.cover_image_url;let i=document.createElement('div');let h=document.createElement('h3');h.textContent=p.name;let m=document.createElement('div');m.className='meta';m.textContent=(p.code||'')+' · R$ '+Number(p.price||0).toFixed(2).replace('.',',')+' · '+p.status+' · estoque '+p.stock;let b=document.createElement('button');b.className='secondary';b.textContent='Editar';b.onclick=()=>edit(p);i.append(h,m,b);d.append(im,i);$('products').append(d)})}
 $('saveBtn').onclick=async()=>{if(!$('name').value.trim()||!$('code').value.trim())return msg('saveMsg','Informe código e nome.',false);$('saveBtn').disabled=true;try{let image=$('oldImage').value,f=$('photo').files[0];if(f){let ext=(f.name.split('.').pop()||'jpg').toLowerCase(),path=Date.now()+'-'+slug($('code').value)+'.'+ext;let{error}=await sb.storage.from('product-images').upload(path,f);if(error)throw error;image=sb.storage.from('product-images').getPublicUrl(path).data.publicUrl}let p={};fields.forEach(k=>p[k]=$(k).value);p.display_order=Number(p.display_order||100);p.price=Number(p.price||0);p.stock=Number(p.stock||0);p.height_cm=p.height_cm?Number(p.height_cm):null;p.diameter_cm=p.diameter_cm?Number(p.diameter_cm):null;p.slug=slug(p.code+'-'+p.name);p.cover_image_url=image||null;p.updated_at=new Date().toISOString();let q=$('id').value?sb.from('products').update(p).eq('id',$('id').value):sb.from('products').insert(p),{error}=await q;if(error)throw error;msg('saveMsg','Vaso salvo com sucesso.');await load();setTimeout(()=>$('editor').classList.add('hidden'),600)}catch(e){msg('saveMsg','Erro: '+e.message,false)}finally{$('saveBtn').disabled=false}};
+
+const brl=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const orderStatusLabel=s=>({pago:'Pago',aguardando_pagamento:'Aguardando pagamento',cancelado:'Cancelado'}[s]||s||'—');
+async function loadOrders(){
+ $('ordersList').textContent='Carregando...';
+ const {data,error}=await sb.from('orders').select('id,created_at,reference_id,customer_name,total,shipping_service,payment_status,order_status,items,stock_processed_at,address_city,address_state').order('created_at',{ascending:false}).limit(100);
+ if(error){$('ordersList').textContent='Não foi possível carregar os pedidos.';return msg('ordersMsg','Erro: '+error.message,false)}
+ $('ordersMsg').innerHTML='';
+ if(!data?.length){$('ordersList').innerHTML='<p class="sub">Nenhum pedido registrado.</p>';return}
+ $('ordersList').innerHTML='';
+ data.forEach(o=>{
+  const box=document.createElement('div');box.className='product';
+  const items=Array.isArray(o.items)?o.items:[];
+  const names=items.length?items.map(i=>`${Number(i.quantity||1)}× ${i.name||'Peça'}`).join(' · '):'Itens não registrados (pedido anterior ao Bloco 3)';
+  const status=orderStatusLabel(o.order_status);
+  box.innerHTML='<div style="width:82px;height:82px;display:grid;place-items:center;background:#e9e3d7;font:700 13px Arial">#'+String(o.id)+'</div><div><h3>'+status+'</h3><div class="meta">'+new Date(o.created_at).toLocaleString('pt-BR')+' · '+brl(o.total)+' · '+(o.customer_name||'Cliente')+'</div><div class="meta" style="margin-top:6px">'+names+'</div><div class="meta" style="margin-top:6px">Pix: '+(o.payment_status||'—')+' · Estoque: '+(o.stock_processed_at?'baixado':'pendente')+(o.address_city?' · '+o.address_city+'/'+(o.address_state||''):'')+'</div></div>';
+  $('ordersList').appendChild(box);
+ });
+}
+$('ordersBtn').onclick=async()=>{$('ordersPanel').classList.remove('hidden');$('editor').classList.add('hidden');$('siteEditor').classList.add('hidden');$('visualEditor').classList.add('hidden');await loadOrders();$('ordersPanel').scrollIntoView({behavior:'smooth'})};
+$('refreshOrdersBtn').onclick=loadOrders;
+$('closeOrdersBtn').onclick=()=>$('ordersPanel').classList.add('hidden');
+
 $('deleteBtn').onclick=async()=>{if(!confirm('Excluir este vaso?'))return;let{error}=await sb.from('products').delete().eq('id',$('id').value);if(error)return msg('saveMsg',error.message,false);$('editor').classList.add('hidden');load()};
 $('siteBtn').onclick=async()=>{$('siteEditor').classList.remove('hidden');$('editor').classList.add('hidden');await loadContent();$('siteEditor').scrollIntoView({behavior:'smooth'})};
 $('closeContentBtn').onclick=()=>$('siteEditor').classList.add('hidden');
