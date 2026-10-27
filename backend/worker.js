@@ -161,14 +161,24 @@ export default {
           reference_id: reference,
           customer: { name: customerName, email: customerEmail, tax_id: customerTaxId },
           items: pagbankItems,
-          shipping: { address: { street: safeText(address.street,160), number: safeText(address.number,20), complement: safeText(address.complement,60), locality: safeText(address.district,80), city: safeText(address.city,80), region_code: safeText(address.state,2).toUpperCase(), country: "BRA", postal_code: digits(address.cep) } },
+          shipping: { address: { street: safeText(address.street,160), number: safeText(address.number,20), complement: safeText(address.complement,60) || "Sem complemento", locality: safeText(address.district,80), city: safeText(address.city,80), region_code: safeText(address.state,2).toUpperCase(), country: "BRA", postal_code: digits(address.cep) } },
           notification_urls: [`${url.origin}/webhook/pagbank`],
           charges: [{ reference_id: `${reference}-PIX`, description: "Pedido RSMF Ceramica", amount: { value: amountInCents, currency: "BRL" }, payment_method: { type: "PIX", pix: { expiration_date: expiration } } }],
         };
 
         const response = await fetch(`${PAGBANK_API}/orders`, { method: "POST", headers: { Authorization: `Bearer ${env.PAGBANK_TOKEN}`, Accept: "application/json", "Content-Type": "application/json" }, body: JSON.stringify(pagbankOrder) });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) return json({ error: "Erro ao criar cobrança Pix no PagBank.", status: response.status, details: data }, response.status);
+        if (!response.ok) {
+              console.error("PAGBANK_ERRO_REAL", JSON.stringify({
+                status: response.status,
+                resposta: data
+              }));
+              return json({
+                error: "Erro ao criar cobrança Pix no PagBank.",
+                status: response.status,
+                details: data
+              }, response.status);
+            }
         const charge = data.charges?.[0]; if (!charge) return json({ error: "PagBank não retornou a cobrança Pix.", details: data }, 502);
         const qr = getQrData(charge); if (!qr.text) return json({ error: "A cobrança foi criada, mas o PagBank não retornou o código Pix.", status: charge.status || null }, 502);
 
@@ -176,7 +186,7 @@ export default {
           reference_id: data.reference_id || reference, pagbank_order_id: data.id || null, pagbank_charge_id: charge.id || null, customer_name: customerName, customer_email: customerEmail,
           subtotal, shipping_price: shippingPrice, total, shipping_service: safeText(shipping.name || shipping.service,80)||null, shipping_company: safeText(shipping.company,80)||null,
           shipping_delivery_time: shipping.delivery_time || null, address_cep: safeText(address.cep,10)||null, address_street: safeText(address.street,160)||null,
-          address_number: safeText(address.number,20)||null, address_complement: safeText(address.complement,60)||null, address_district: safeText(address.district,80)||null,
+          address_number: safeText(address.number,20)||null, address_complement: safeText(address.complement,60) || "Sem complemento"||null, address_district: safeText(address.district,80)||null,
           address_city: safeText(address.city,80)||null, address_state: safeText(address.state,2).toUpperCase()||null, payment_method: "PIX", payment_status: charge.status || "WAITING",
           order_status: "aguardando_pagamento", pix_expiration: charge.payment_method?.pix?.expiration_date || expiration,
           items: items.map(i => ({ product_id: i.product_id, name: i.name, quantity: i.quantity, unit_amount: i.unit_amount }))
