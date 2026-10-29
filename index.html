@@ -16,7 +16,56 @@
 <script>
 const MR_URL='https://cmzeojsbqrckvrcdhgqz.supabase.co',MR_KEY='sb_publishable_yd_g8vW-7zMLNsh_NA0Ivg_Iqz2C_gg',CART_KEY='rsmf_cart';const mr=supabase.createClient(MR_URL,MR_KEY);
 function getCart(){try{const x=JSON.parse(localStorage.getItem(CART_KEY)||'[]');return Array.isArray(x)?x:[]}catch{return[]}}function updateCartCount(){const n=getCart().reduce((s,x)=>s+Math.max(0,Number(x.quantity||0)),0);document.getElementById('cartCount').textContent=n;document.getElementById('cartCount').style.display=n?'grid':'none'}function brl(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
-async function loadProducts(){const grid=document.getElementById('productGrid');const{data,error}=await mr.from('products').select('*').eq('status','available').gt('stock',0).order('display_order',{ascending:true});if(error){grid.innerHTML='<div class="loading">Não foi possível carregar a coleção agora.</div>';return}if(!data?.length){grid.innerHTML='<div class="loading">Novas peças em breve.</div>';return}grid.innerHTML=data.map(p=>{const url='/produto/?'+(p.slug?'slug='+encodeURIComponent(p.slug):'id='+encodeURIComponent(p.id));const img=p.cover_image_url?'<img src="'+p.cover_image_url+'" alt="'+String(p.name||'Peça RSMF').replace(/"/g,'&quot;')+'" loading="lazy">':'';return '<article class="product"><a class="photo" href="'+url+'">'+img+'</a><div class="product-body"><h3>'+String(p.name||p.code||'Peça RSMF')+'</h3><p class="price">'+brl(p.price)+'</p><div class="stock">'+Number(p.stock||0)+' em estoque</div><a class="buy" href="'+url+'">Ver peça</a></div></article>'}).join('')}
+async function loadProducts(){const grid=document.getElementById('productGrid');const{data,error}=await mr.from('products').select('*').eq('status','available').gt('stock',0).order('display_order',{ascending:true});if(error){grid.innerHTML='<div class="loading">Não foi possível carregar a coleção agora.</div>';return}if(!data?.length){grid.innerHTML='<div class="loading">Novas peças em breve.</div>';return}grid.innerHTML=(window.rsmfGridProducts=data).map(p=>{const url='/produto/?'+(p.slug?'slug='+encodeURIComponent(p.slug):'id='+encodeURIComponent(p.id));const img=p.cover_image_url?'<img src="'+p.cover_image_url+'" alt="'+String(p.name||'Peça RSMF').replace(/"/g,'&quot;')+'" loading="lazy">':'';return '<article class="product"><a class="photo" href="'+url+'">'+img+'</a><div class="product-body"><h3>'+String(p.name||p.code||'Peça RSMF')+'</h3><p class="price">'+brl(p.price)+'</p><div class="stock">'+Number(p.stock||0)+' em estoque</div><a class="buy" href="'+url+'">Ver peça</a><button class="buy" type="button" data-id="'+p.id+'" onclick="addToCartFromGrid(this)">Adicionar ao carrinho</button></div></article>'}).join('')}
 async function loadSiteContent(){const{data,error}=await mr.from('site_content').select('key,value');if(error||!data)return;const map=Object.fromEntries(data.map(x=>[x.key,x.value]));document.querySelectorAll('[data-content]').forEach(el=>{const v=map[el.dataset.content];if(v!=null)el.textContent=v});const instagram=map.instagram_url||'https://www.instagram.com/rsmf.ceramica/';document.querySelectorAll('a[href*="instagram.com"]').forEach(a=>a.href=instagram);const hero=document.querySelector('.heroart');if(hero&&map.hero_image_url){hero.style.backgroundImage='url("'+map.hero_image_url+'")';hero.classList.add('has-photo')}const collection=document.querySelector('#colecao');if(collection&&map.collection_image_url){collection.style.backgroundImage='url("'+map.collection_image_url+'")';collection.classList.add('collection-photo')}const atelier=document.querySelector('#atelier');if(atelier&&map.studio_image_url){atelier.style.backgroundImage='url("'+map.studio_image_url+'")';atelier.classList.add('studio-photo')}if(atelier&&map.show_studio==='false')atelier.style.display='none';const contact=document.querySelector('#contato');if(contact&&map.show_contact==='false')contact.style.display='none';const label=document.querySelector('.label');if(label&&map.show_label_card==='false')label.style.display='none'}
 updateCartCount();loadProducts();loadSiteContent();window.addEventListener('storage',updateCartCount);if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
-</script></body></html>
+</script>
+<script>
+function addToCartFromGrid(btn) {
+  const p = (window.rsmfGridProducts || [])
+    .find(x => String(x.id) === String(btn.dataset.id));
+
+  if (!p || p.status !== 'available' || Number(p.stock) <= 0) {
+    alert('Peça indisponível.');
+    return;
+  }
+
+  const key = 'rsmf_cart';
+  let cart;
+
+  try {
+    cart = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!Array.isArray(cart)) cart = [];
+  } catch {
+    cart = [];
+  }
+
+  const max = Number(p.stock);
+  const i = cart.findIndex(x => String(x.id) === String(p.id));
+
+  if (i >= 0) {
+    if (Number(cart[i].quantity || 0) >= max) {
+      alert('Estoque máximo atingido.');
+      return;
+    }
+    cart[i].quantity = Number(cart[i].quantity || 0) + 1;
+  } else {
+    cart.push({
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      price: Number(p.price || 0),
+      image: p.cover_image_url || '',
+      quantity: 1,
+      stock: max
+    });
+  }
+
+  localStorage.setItem(key, JSON.stringify(cart));
+  btn.textContent = 'Adicionado ✓';
+  setTimeout(() => {
+    btn.textContent = 'Adicionar ao carrinho';
+  }, 1800);
+}
+</script>
+</body></html>
