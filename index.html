@@ -45,7 +45,7 @@ function addToCartFromGrid(btn) {
 
   if (i >= 0) {
     if (Number(cart[i].quantity || 0) >= max) {
-      alert('Estoque máximo atingido.');
+      alert('Esta peça já está no seu carrinho! Você adicionou a última unidade disponível. Acesse o carrinho para finalizar sua compra.');
       return;
     }
     cart[i].quantity = Number(cart[i].quantity || 0) + 1;
