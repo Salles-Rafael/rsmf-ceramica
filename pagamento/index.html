@@ -336,7 +336,7 @@ generateButton.addEventListener(
 
       if (!response.ok || !data.ok) {
         throw new Error(
-          (data.error || "Erro Pix") + " | HTTP " + response.status + " | " + (data.details?.error_messages || data.details?.message || data.details?.error || []).toString() ||
+          (data.error || "Erro Pix") + " | HTTP " + response.status + " | " + JSON.stringify(data.details?.error_messages || data.details?.message || data.details?.error || []).slice(0,500) ||
           "Não foi possível gerar o Pix."
         );
       }
