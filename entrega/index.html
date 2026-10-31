@@ -147,6 +147,11 @@ Escolha entre retirar seu pedido gratuitamente em Salvador ou receber pelos Corr
 <label for="email">E-mail</label>
 <input id="email" type="email" autocomplete="email" inputmode="email">
 
+<label for="phone">Celular com DDD</label>
+<input id="phone" type="tel" inputmode="tel"
+ autocomplete="tel-national" maxlength="15"
+ placeholder="(71) 99999-9999" required>
+
 <label for="taxId">CPF</label>
 <input id="taxId" inputmode="numeric" maxlength="14" placeholder="000.000.000-00">
 
@@ -444,6 +449,7 @@ continueButton.addEventListener("click",()=>{
   const name=document.getElementById("name").value.trim();
   const email=document.getElementById("email").value.trim();
   const cpf=document.getElementById("taxId").value.replace(/\D/g,"");
+   const phone=document.getElementById("phone").value.replace(/\D/g,"");
   const street=document.getElementById("street").value.trim();
   const number=document.getElementById("number").value.trim();
   const district=document.getElementById("district").value.trim();
@@ -455,6 +461,7 @@ continueButton.addEventListener("click",()=>{
     ["name",!name],
     ["email",!email || !document.getElementById("email").checkValidity()],
     ["taxId",cpf.length!==11],
+     ["phone",phone.length!==11 || phone[0]==="0" || phone[1]==="0"],
     ...(deliveryMode==="pickup"?[]:[
     ["cep",cep.value.replace(/\D/g,"").length!==8],
     ["street",!street],
@@ -475,7 +482,7 @@ continueButton.addEventListener("click",()=>{
   }
 
   const checkout={
-    customer:{ name, email, tax_id:cpf },
+    customer:{ name, email, tax_id:cpf, phone },
     address:deliveryMode==="pickup" ? null : {
       cep:cep.value.trim(),
       street,
@@ -494,6 +501,13 @@ continueButton.addEventListener("click",()=>{
   localStorage.setItem(CHECKOUT_KEY,JSON.stringify(checkout));
 
   window.location.href="/pagamento/";
+});
+const phoneInput=document.getElementById("phone");
+phoneInput.addEventListener("input",()=>{
+  const n=phoneInput.value.replace(/\D/g,"").slice(0,11);
+  phoneInput.value=n.length>2
+    ? `(${n.slice(0,2)}) ${n.slice(2,7)}${n.length>7?"-"+n.slice(7):""}`
+    : n;
 });
 selectDeliveryMode("delivery");
 </script>

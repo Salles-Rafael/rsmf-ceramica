@@ -29,9 +29,39 @@ h1,h2,h3,.quote{font-family:Georgia,'Times New Roman',serif;font-weight:400;lett
 .insta{background:#454f3e!important;color:#f7f3e9!important}.insta .cta{background:#f1e7d4!important;color:#263026!important}
 .footer{background:#252a24!important;color:#f2eee5!important}
 @media(max-width:700px){.hero h1{font-size:clamp(55px,14vw,84px)!important}.hero{padding-top:50px!important}.navlinks{gap:12px!important}.section{padding-top:64px!important;padding-bottom:64px!important}}
+<style>
+header > div:last-child {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:flex-end;
+}
+header button {margin:0}
+#ordersUpdated {
+  color:var(--muted);
+  font-size:12px;
+  margin:-8px 0 16px;
+}
+@media(max-width:650px){
+  header {
+    flex-direction:column;
+    align-items:stretch;
+    gap:14px;
+  }
+  header > div:last-child {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  header button {
+    padding:12px 8px;
+    font-size:12px;
+  }
+  #newBtn {grid-column:1/-1}
+}
 </style></head><body><header><div><div class="logo">RSMF Cerâmica</div><div class="tag">ADMIN</div></div><div><button id="ordersBtn" class="secondary hidden">Pedidos</button> <button id="visualBtn" class="secondary hidden">Imagens</button> <button id="siteBtn" class="secondary hidden">Editar site</button> <button id="newBtn" class="hidden">+ Novo vaso</button> <button id="logoutBtn" class="secondary hidden">Sair</button></div></header><main>
 <section id="login" class="card login"><h1>RSMF Cerâmica ADMIN</h1><p class="sub">Entre para administrar os vasos da loja.</p><div class="grid"><label class="full">E-mail<input id="email" type="email"></label><label class="full">Senha<input id="password" type="password"></label></div><div class="actions"><button id="loginBtn">Entrar</button></div><div id="loginMsg"></div></section>
-<section id="app" class="hidden"><div id="ordersPanel" class="card hidden"><h1>Pedidos</h1><p class="sub">Acompanhe pagamentos e a baixa automática do estoque.</p><div id="ordersList">Carregando...</div><div class="actions"><button id="refreshOrdersBtn" class="secondary">Atualizar pedidos</button><button id="closeOrdersBtn" class="secondary">Fechar</button></div><div id="ordersMsg"></div></div><div class="card"><h1>Catálogo</h1><p class="sub">Cadastre e atualize as peças da RSMF Cerâmica.</p><div id="products">Carregando...</div></div>
+<section id="app" class="hidden"><div id="ordersPanel" class="card hidden"><h1>Pedidos</h1><p class="sub">Acompanhe pagamentos e a baixa automática do estoque.</p><div id="ordersUpdated" aria-live="polite">Aguardando atualização...</div><div id="ordersList">Carregando...</div><div class="actions"><button id="refreshOrdersBtn" class="secondary">Atualizar pedidos</button><button id="closeOrdersBtn" class="secondary">Fechar</button></div><div id="ordersMsg"></div></div><div class="card"><h1>Catálogo</h1><p class="sub">Cadastre e atualize as peças da RSMF Cerâmica.</p><div id="products">Carregando...</div></div>
 <div id="siteEditor" class="card hidden"><h2>Editar site</h2><p class="sub">Altere os textos da loja e salve.</p><div id="contentFields"></div><div class="actions"><button id="saveContentBtn">Salvar alterações</button><button id="closeContentBtn" class="secondary">Fechar</button></div><div id="contentMsg"></div></div>
 <div id="visualEditor" class="card hidden"><h2>Imagens e aparência</h2>
 <p class="sub">Escolha fotos da Galeria e controle as seções visíveis da loja.</p>
@@ -72,6 +102,8 @@ async function loadOrders(silent=false){
  const {data,error}=await sb.from('orders').select('id,created_at,reference_id,customer_name,total,shipping_service,payment_status,order_status,items,stock_processed_at,address_city,address_state').order('created_at',{ascending:false}).limit(100);
  if(error){$('ordersList').textContent='Não foi possível carregar os pedidos.';return msg('ordersMsg','Erro: '+error.message,false)}
  $('ordersMsg').innerHTML='';
+ $('ordersUpdated').textContent =
+   'Atualizado às '+new Date().toLocaleTimeString('pt-BR');
  if(!data?.length){$('ordersList').innerHTML='<p class="sub">Nenhum pedido registrado.</p>';return}
  $('ordersList').innerHTML='';
  data.forEach(o=>{
