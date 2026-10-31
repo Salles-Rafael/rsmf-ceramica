@@ -67,8 +67,8 @@ $('saveBtn').onclick=async()=>{if(!$('name').value.trim()||!$('code').value.trim
 
 const brl=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const orderStatusLabel=s=>({pago:'Pago',aguardando_pagamento:'Aguardando pagamento',cancelado:'Cancelado'}[s]||s||'—');
-async function loadOrders(){
- $('ordersList').textContent='Carregando...';
+async function loadOrders(silent=false){
+ if(!silent) $('ordersList').textContent='Carregando...';
  const {data,error}=await sb.from('orders').select('id,created_at,reference_id,customer_name,total,shipping_service,payment_status,order_status,items,stock_processed_at,address_city,address_state').order('created_at',{ascending:false}).limit(100);
  if(error){$('ordersList').textContent='Não foi possível carregar os pedidos.';return msg('ordersMsg','Erro: '+error.message,false)}
  $('ordersMsg').innerHTML='';
@@ -85,6 +85,11 @@ async function loadOrders(){
 }
 $('ordersBtn').onclick=async()=>{$('ordersPanel').classList.remove('hidden');$('editor').classList.add('hidden');$('siteEditor').classList.add('hidden');$('visualEditor').classList.add('hidden');await loadOrders();$('ordersPanel').scrollIntoView({behavior:'smooth'})};
 $('refreshOrdersBtn').onclick=loadOrders;
+setInterval(()=>{
+ if(!document.hidden && !$('ordersPanel').classList.contains('hidden')){
+  loadOrders(true).catch(console.error);
+ }
+},15000);
 $('closeOrdersBtn').onclick=()=>$('ordersPanel').classList.add('hidden');
 
 $('deleteBtn').onclick=async()=>{if(!confirm('Excluir este vaso?'))return;let{error}=await sb.from('products').delete().eq('id',$('id').value);if(error)return msg('saveMsg',error.message,false);$('editor').classList.add('hidden');load()};
