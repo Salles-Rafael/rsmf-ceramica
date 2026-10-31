@@ -135,11 +135,11 @@ input.field-error{
 
 <h1>Entrega</h1>
 <p class="intro">
-Informe o endereço para calcular as opções de envio do seu pedido.
+Escolha entre retirar seu pedido gratuitamente em Salvador ou receber pelos Correios.
 </p>
 
 <section class="card">
-<h2>Endereço de entrega</h2>
+<h2>Dados do comprador</h2>
 
 <label for="name">Nome completo</label>
 <input id="name" autocomplete="name">
@@ -150,6 +150,12 @@ Informe o endereço para calcular as opções de envio do seu pedido.
 <label for="taxId">CPF</label>
 <input id="taxId" inputmode="numeric" maxlength="14" placeholder="000.000.000-00">
 
+<div id="deliveryMode" role="group" aria-label="Modalidade de entrega">
+<label class="option"><input type="radio" name="deliveryMode" value="pickup"> <strong>Retirada em mãos · Grátis</strong><small>Salvador · Mediante agendamento após confirmação do pagamento</small></label>
+<label class="option"><input type="radio" name="deliveryMode" value="delivery" checked> <strong>Entrega pelos Correios</strong><small>Consulte PAC e SEDEX informando seu CEP</small></label>
+</div>
+<div id="deliveryAddress">
+<h2 style="margin-top:28px">Endereço de entrega</h2>
 <label for="cep">CEP</label>
 <input id="cep" inputmode="numeric" maxlength="9" placeholder="00000-000">
 
@@ -184,6 +190,7 @@ Informe o endereço para calcular as opções de envio do seu pedido.
 </div>
 
 <button id="calculate">Calcular frete</button>
+</div>
 
 <div id="status"></div>
 </section>
@@ -255,6 +262,35 @@ const summary=document.getElementById("summary");
 const continueButton=document.getElementById("continue");
 
 let selectedShipping=null;
+let deliveryMode="delivery";
+const deliveryAddress=document.getElementById("deliveryAddress");
+function showSummary(){
+  const productsTotal=subtotal();
+  const freight=Number(selectedShipping?.price||0);
+  document.getElementById("subtotal").textContent=money(productsTotal);
+  document.getElementById("shippingPrice").textContent=money(freight);
+  document.getElementById("grandTotal").textContent=money(productsTotal+freight);
+  summary.style.display="block";
+  continueButton.disabled=!getCart().length;
+}
+function selectDeliveryMode(mode){
+  deliveryMode=mode;
+  selectedShipping=null;
+  optionsEl.innerHTML="";
+  shippingBox.style.display="none";
+  summary.style.display="none";
+  continueButton.disabled=true;
+  statusEl.textContent="";
+  deliveryAddress.style.display=mode==="pickup"?"none":"block";
+  clearAddressError();
+  if(mode==="pickup"){
+    selectedShipping={id:"retirada",name:"Retirada em mãos — Salvador (agendamento)",price:0,delivery_time:null,type:"pickup"};
+    showSummary();
+  }
+}
+document.querySelectorAll('input[name="deliveryMode"]').forEach(radio=>{
+  radio.addEventListener("change",()=>selectDeliveryMode(radio.value));
+});
 
 let lastAddressCep="";
 let addressLookupTimer=null;
@@ -291,6 +327,7 @@ async function lookupAddress(){
 }
 
 cep.addEventListener("input",e=>{
+  if(deliveryMode==="pickup") return;
   e.target.value=maskCep(e.target.value);
   lastAddressCep="";
   selectedShipping=null;
@@ -304,7 +341,7 @@ cep.addEventListener("input",e=>{
   }
 });
 
-cep.addEventListener("blur",lookupAddress);
+cep.addEventListener("blur",()=>{ if(deliveryMode!=="pickup") lookupAddress(); });
 
 const taxId=document.getElementById("taxId");
 taxId.addEventListener("input",e=>{
@@ -318,6 +355,7 @@ taxId.addEventListener("input",e=>{
 document.getElementById("subtotal").textContent=money(subtotal());
 
 document.getElementById("calculate").addEventListener("click",async()=>{
+  if(deliveryMode==="pickup") return;
   const cleanCep=cep.value.replace(/\D/g,"");
 
   if(cleanCep.length!==8){
@@ -401,7 +439,7 @@ document.getElementById("calculate").addEventListener("click",async()=>{
 });
 
 continueButton.addEventListener("click",()=>{
-  if(!selectedShipping) return;
+  if(!selectedShipping || !getCart().length) return;
 
   const name=document.getElementById("name").value.trim();
   const email=document.getElementById("email").value.trim();
@@ -417,12 +455,14 @@ continueButton.addEventListener("click",()=>{
     ["name",!name],
     ["email",!email || !document.getElementById("email").checkValidity()],
     ["taxId",cpf.length!==11],
+    ...(deliveryMode==="pickup"?[]:[
     ["cep",cep.value.replace(/\D/g,"").length!==8],
     ["street",!street],
     ["number",!number],
     ["district",!district],
     ["city",!city],
     ["state",state.length!==2]
+    ])
   ];
   const invalid=required.filter(([,bad])=>bad);
   if(invalid.length){
@@ -436,7 +476,7 @@ continueButton.addEventListener("click",()=>{
 
   const checkout={
     customer:{ name, email, tax_id:cpf },
-    address:{
+    address:deliveryMode==="pickup" ? null : {
       cep:cep.value.trim(),
       street,
       number,
@@ -446,6 +486,7 @@ continueButton.addEventListener("click",()=>{
       state
     },
     shipping:selectedShipping,
+    delivery_method:deliveryMode,
     subtotal:subtotal(),
     total:subtotal()+selectedShipping.price
   };
@@ -454,6 +495,7 @@ continueButton.addEventListener("click",()=>{
 
   window.location.href="/pagamento/";
 });
+selectDeliveryMode("delivery");
 </script>
 
 </body>

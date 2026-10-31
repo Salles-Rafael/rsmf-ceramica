@@ -277,9 +277,11 @@ document.getElementById("subtotal").textContent =
   money(checkout.subtotal);
 
 document.getElementById("shippingName").textContent =
-  checkout.shipping?.name
-    ? `Frete · ${checkout.shipping.name}`
-    : "Frete";
+  checkout.delivery_method === "pickup"
+    ? "Retirada em mãos · Salvador (agendamento)"
+    : checkout.shipping?.name
+      ? `Frete · ${checkout.shipping.name}`
+      : "Frete";
 
 document.getElementById("shippingPrice").textContent =
   money(checkout.shipping?.price);
