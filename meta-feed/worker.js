@@ -55,7 +55,7 @@ export default {
 
     const cabecalho = [
       "id","title","description","availability",
-      "condition","price","link","image_link","brand"
+      "condition","price","link","image_link","brand","quantity_to_sell_on_facebook"
     ];
 
     const linhas = [cabecalho.join(",")];
@@ -83,7 +83,8 @@ export default {
         "https://rsmfceramica.com.br/produto/?slug=" +
           encodeURIComponent(p.slug),
         p.cover_image_url,
-        "RSMF Cerâmica"
+        "RSMF Cerâmica",
+        disponivel ? Math.max(0,Math.floor(Number(p.stock))) : 0
       ];
 
       linhas.push(dados.map(csv).join(","));
