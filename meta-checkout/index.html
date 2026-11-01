@@ -30,6 +30,18 @@ const mapa={
 "ipa8c5zk5c":"002-002"
 };
 
+function identificar(codigo){
+  if(Object.prototype.hasOwnProperty.call(mapa,codigo)){
+    return "slug:"+mapa[codigo];
+  }
+
+  const id = /^rsmf_([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.exec(codigo);
+
+  if(id)return "id:"+id[1].toLowerCase();
+
+  throw Error("Produto não reconhecido.");
+}
+
 const mensagem=document.getElementById("status");
 
 async function iniciar(){
@@ -42,35 +54,60 @@ if(!entrada)throw Error("Nenhum produto recebido da Meta.");
 const pedidos=new Map();
 
 for(const parte of entrada.split(",")){
-const partes=parte.split(":");
-if(partes.length!==2)throw Error("Formato de produto inválido.");
-const [codigo,qtd]=partes;
-const slug=mapa[codigo];
-const quantidade=Number(qtd);
+  const partes=parte.split(":");
 
-if(!slug||!Number.isSafeInteger(quantidade)||quantidade<1)
-throw Error("Produto ou quantidade inválida.");
+  if(partes.length!==2)
+    throw Error("Formato de produto inválido.");
 
-pedidos.set(slug,(pedidos.get(slug)||0)+quantidade);
+  const [codigo,qtd]=partes;
+  const quantidade=Number(qtd);
+
+  if(!Number.isSafeInteger(quantidade)||quantidade<1)
+    throw Error("Quantidade inválida.");
+
+  const chave=identificar(codigo);
+  pedidos.set(chave,(pedidos.get(chave)||0)+quantidade);
 }
 
-const slugs=[...pedidos.keys()];
-const filtro=encodeURIComponent("("+slugs.join(",")+")");
+const slugs=[];
+const ids=[];
 
-const resposta=await fetch(
-SUPABASE_URL+"/rest/v1/products?select=id,slug,name,price,cover_image_url,stock,status&slug=in."+filtro,
-{headers:{
-apikey:SUPABASE_KEY,
-Authorization:"Bearer "+SUPABASE_KEY
-}}
-);
+for(const chave of pedidos.keys()){
+  const [tipo,valor]=chave.split(":");
+  if(tipo==="slug")slugs.push(valor);
+  else ids.push(valor);
+}
 
-if(!resposta.ok)throw Error("Não foi possível consultar os produtos.");
+async function buscarProdutos(campo,valores){
+  if(!valores.length)return [];
 
-const produtos=await resposta.json();
+  const filtro=encodeURIComponent("("+valores.join(",")+")");
 
-if(produtos.length!==slugs.length)
-throw Error("Um dos produtos não foi encontrado.");
+  const resposta=await fetch(
+    SUPABASE_URL+
+    "/rest/v1/products?select=id,slug,name,price,cover_image_url,stock,status&"+
+    campo+"=in."+filtro,
+    {headers:{
+      apikey:SUPABASE_KEY,
+      Authorization:"Bearer "+SUPABASE_KEY
+    }}
+  );
+
+  if(!resposta.ok)
+    throw Error("Não foi possível consultar os produtos.");
+
+  return await resposta.json();
+}
+
+const [antigos,novos]=await Promise.all([
+  buscarProdutos("slug",slugs),
+  buscarProdutos("id",ids)
+]);
+
+const produtos=[...antigos,...novos];
+
+if(produtos.length!==pedidos.size)
+  throw Error("Um dos produtos não foi encontrado.");
 
 let carrinho;
 try{
@@ -84,7 +121,12 @@ throw Error("Formato do carrinho inválido.");
 const atualizacoes=[];
 
 for(const produto of produtos){
-const qtd=pedidos.get(produto.slug);
+const qtd=
+  pedidos.get("id:"+produto.id) ??
+  pedidos.get("slug:"+produto.slug);
+
+if(!qtd)
+  throw Error("Produto não reconhecido.");
 const estoque=Number(produto.stock);
 const preco=Number(produto.price);
 
