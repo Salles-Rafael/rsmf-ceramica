@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finalizar compra | RSMF Cerâmica</title>
+<style>
+body{background:#151515;color:#fff;font-family:Arial,sans-serif;
+display:grid;place-items:center;min-height:90vh;text-align:center;
+padding:20px}
+main{max-width:420px}
+a{color:#e0c799}
+</style>
+</head>
+<body>
+<main>
+<h2>RSMF Cerâmica</h2>
+<p id="status">Preparando seus produtos...</p>
+<p><a href="/carrinho/">Ir para o carrinho</a></p>
+</main>
+<script>
+const SUPABASE_URL="https://cmzeojsbqrckvrcdhgqz.supabase.co";
+const SUPABASE_KEY="sb_publishable_yd_g8vW-7zMLNsh_NA0Ivg_Iqz2C_gg";
+const CART_KEY="rsmf_cart";
+
+const mapa={
+"19i0Oplr5i":"003-003",
+"nvelctms6u":"002-002",
+"fcy5nfnzgu":"001-001",
+"ipa8c5zk5c":"004-004"
+};
+
+const mensagem=document.getElementById("status");
+
+async function iniciar(){
+try{
+const params=new URLSearchParams(location.search);
+const entrada=params.get("products");
+
+if(!entrada)throw Error("Nenhum produto recebido da Meta.");
+
+const pedidos=new Map();
+
+for(const parte of entrada.split(",")){
+const partes=parte.split(":");
+if(partes.length!==2)throw Error("Formato de produto inválido.");
+const [codigo,qtd]=partes;
+const slug=mapa[codigo];
+const quantidade=Number(qtd);
+
+if(!slug||!Number.isSafeInteger(quantidade)||quantidade<1)
+throw Error("Produto ou quantidade inválida.");
+
+pedidos.set(slug,(pedidos.get(slug)||0)+quantidade);
+}
+
+const slugs=[...pedidos.keys()];
+const filtro=encodeURIComponent("("+slugs.join(",")+")");
+
+const resposta=await fetch(
+SUPABASE_URL+"/rest/v1/products?select=id,slug,name,price,cover_image_url,stock,status&slug=in."+filtro,
+{headers:{
+apikey:SUPABASE_KEY,
+Authorization:"Bearer "+SUPABASE_KEY
+}}
+);
+
+if(!resposta.ok)throw Error("Não foi possível consultar os produtos.");
+
+const produtos=await resposta.json();
+
+if(produtos.length!==slugs.length)
+throw Error("Um dos produtos não foi encontrado.");
+
+let carrinho;
+try{
+carrinho=JSON.parse(localStorage.getItem(CART_KEY)||"[]");
+}catch{
+throw Error("Não foi possível ler o carrinho atual.");
+}
+if(!Array.isArray(carrinho))
+throw Error("Formato do carrinho inválido.");
+
+const atualizacoes=[];
+
+for(const produto of produtos){
+const qtd=pedidos.get(produto.slug);
+const estoque=Number(produto.stock);
+const preco=Number(produto.price);
+
+if(produto.status!=="available"||
+!Number.isFinite(estoque)||estoque<qtd||
+!Number.isFinite(preco)||preco<0)
+throw Error("Produto indisponível ou estoque insuficiente.");
+
+const existente=carrinho.find(x=>x.id===produto.id);
+const total=qtd+Number(existente?.quantity||0);
+
+if(!Number.isSafeInteger(total)||total>estoque)
+throw Error("Quantidade superior ao estoque disponível.");
+
+atualizacoes.push({
+existente,
+item:{
+id:produto.id,
+slug:produto.slug,
+name:produto.name,
+price:preco,
+image:produto.cover_image_url||"",
+quantity:total,
+stock:estoque
+}
+});
+}
+
+for(const {existente,item} of atualizacoes){
+if(existente)Object.assign(existente,item);
+else carrinho.push(item);
+}
+
+localStorage.setItem(CART_KEY,JSON.stringify(carrinho));
+mensagem.textContent="Produtos adicionados. Abrindo carrinho...";
+location.replace("/carrinho/");
+
+}catch(erro){
+mensagem.textContent=erro.message;
+}
+}
+
+iniciar();
+</script>
+</body>
+</html>
