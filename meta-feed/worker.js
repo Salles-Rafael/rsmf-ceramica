@@ -23,13 +23,14 @@ export default {
     const u = new URL(request.url);
 
     if (u.pathname !== "/catalogo.csv" &&
+        u.pathname !== "/videos.csv" &&
         u.pathname !== "/") {
       return new Response("Não encontrado",{status:404});
     }
 
     const endpoint =
       env.SUPABASE_URL +
-      "/rest/v1/products?select=id,slug,name,description,price,stock,status,cover_image_url&limit=1000";
+      "/rest/v1/products?select=id,slug,name,description,price,stock,status,cover_image_url,media_gallery&limit=1000";
 
     let resposta;
     try {
@@ -55,10 +56,11 @@ export default {
 
     const cabecalho = [
       "id","title","description","availability",
-      "condition","price","link","image_link","brand","quantity_to_sell_on_facebook"
+      "condition","price","link","image_link","brand","quantity_to_sell_on_facebook","additional_image_link"
     ];
 
-    const linhas = [cabecalho.join(",")];
+    const videoOnly = u.pathname === "/videos.csv";
+    const linhas = [videoOnly ? 'id,video[0].url' : cabecalho.join(",")];
 
     for (const p of produtos) {
       if (p.status === "draft") continue;
@@ -73,6 +75,10 @@ export default {
         p.status === "available" &&
         Number(p.stock) > 0;
 
+      const midias=Array.isArray(p.media_gallery)?p.media_gallery:[];
+      const extraImages=midias.filter(x=>x?.type==='image'&&typeof x.url==='string'&&x.url.startsWith('https://')).slice(0,20).map(x=>x.url);
+      const firstVideo=midias.find(x=>x?.type==='video'&&typeof x.url==='string'&&x.url.startsWith('https://'));
+      if(videoOnly){if(firstVideo)linhas.push([id,firstVideo.url].map(csv).join(','));continue}
       const dados = [
         id,
         NOMES[p.slug] || p.name,
@@ -84,7 +90,8 @@ export default {
           encodeURIComponent(p.slug),
         p.cover_image_url,
         "RSMF Cerâmica",
-        disponivel ? Math.max(0,Math.floor(Number(p.stock))) : 0
+        disponivel ? Math.max(0,Math.floor(Number(p.stock))) : 0,
+        extraImages.join(',')
       ];
 
       linhas.push(dados.map(csv).join(","));
