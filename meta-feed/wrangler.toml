@@ -6,3 +6,9 @@ workers_dev = true
 [vars]
 SUPABASE_URL = "https://cmzeojsbqrckvrcdhgqz.supabase.co"
 SUPABASE_KEY = "sb_publishable_yd_g8vW-7zMLNsh_NA0Ivg_Iqz2C_gg"
+
+[previews]
+
+[previews.vars]
+SUPABASE_URL = "https://cmzeojsbqrckvrcdhgqz.supabase.co"
+SUPABASE_KEY = "sb_publishable_yd_g8vW-7zMLNsh_NA0Ivg_Iqz2C_gg"
