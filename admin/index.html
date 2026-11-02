@@ -37,6 +37,7 @@ header > div:last-child {
   justify-content:flex-end;
 }
 header button {margin:0}
+.media-admin-list{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}.media-admin-item{border:1px solid var(--line);padding:8px;max-width:145px;background:white}.media-admin-item img,.media-admin-item video{width:125px;height:125px;object-fit:cover}.media-admin-item button{font-size:11px;padding:8px;margin-top:5px;width:100%}
 #ordersUpdated {
   color:var(--muted);
   font-size:12px;
@@ -59,6 +60,14 @@ header button {margin:0}
   }
   #newBtn {grid-column:1/-1}
 }
+
+/* Prévia privada — apenas visualização, sem gravação */
+#mediaPreviewDialog{border:1px solid var(--line);border-radius:12px;background:#181713;color:#f8f4ea;width:min(94vw,680px);max-height:90vh;padding:18px;box-shadow:0 10px 50px #0009}
+#mediaPreviewDialog::backdrop{background:#000c}
+#mediaPreviewStage{min-height:240px;display:grid;place-items:center;margin:12px 0;background:#0e0d0b}
+#mediaPreviewStage img,#mediaPreviewStage video{max-width:100%;max-height:65vh;width:auto;height:auto;object-fit:contain}
+#mediaPreviewStatus{font-size:13px;text-align:center;margin:8px;color:#ddd}
+#mediaPreviewDialog .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 </style></head><body><header><div><div class="logo">RSMF Cerâmica</div><div class="tag">ADMIN</div></div><div><button id="ordersBtn" class="secondary hidden">Pedidos</button> <button id="visualBtn" class="secondary hidden">Imagens</button> <button id="siteBtn" class="secondary hidden">Editar site</button> <button id="newBtn" class="hidden">+ Novo vaso</button> <button id="logoutBtn" class="secondary hidden">Sair</button></div></header><main>
 <section id="login" class="card login"><h1>RSMF Cerâmica ADMIN</h1><p class="sub">Entre para administrar os vasos da loja.</p><div class="grid"><label class="full">E-mail<input id="email" type="email"></label><label class="full">Senha<input id="password" type="password"></label></div><div class="actions"><button id="loginBtn">Entrar</button></div><div id="loginMsg"></div></section>
 <section id="app" class="hidden"><div id="ordersPanel" class="card hidden"><h1>Pedidos</h1><p class="sub">Acompanhe pagamentos e a baixa automática do estoque.</p><div id="ordersUpdated" aria-live="polite">Aguardando atualização...</div><div id="ordersList">Carregando...</div><div class="actions"><button id="refreshOrdersBtn" class="secondary">Atualizar pedidos</button><button id="closeOrdersBtn" class="secondary">Fechar</button></div><div id="ordersMsg"></div></div><div class="card"><h1>Catálogo</h1><p class="sub">Cadastre e atualize as peças da RSMF Cerâmica.</p><div id="products">Carregando...</div></div>
@@ -79,8 +88,11 @@ header button {margin:0}
 <label>Altura (cm)<input id="height_cm" type="number" min="0" step=".1"></label><label>Diâmetro (cm)<input id="diameter_cm" type="number" min="0" step=".1"></label>
 <label>Cor<input id="color"></label><label>Acabamento<input id="finish"></label><label>Coleção<input id="collection"></label><label>Edição<input id="edition"></label>
 <label>Situação<select id="status"><option value="available">Disponível</option><option value="reserved">Reservado</option><option value="sold">Vendido</option><option value="draft">Rascunho</option></select></label>
-<label>Foto<input id="photo" type="file" accept="image/*"><img id="preview" class="preview"></label></div>
-<div class="actions"><button id="saveBtn">Salvar vaso</button><button id="cancelBtn" class="secondary">Cancelar</button><button id="deleteBtn" class="danger hidden">Excluir</button></div><div id="saveMsg"></div></div></section></main>
+<label>Foto principal<input id="photo" type="file" accept="image/*"><img id="preview" class="preview"></label>
+<label class="full">Fotos adicionais (até 6, JPG/PNG/WEBP; 8 MB cada)<input id="extraPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple></label>
+<label class="full">Vídeo da peça (MP4, até 40 MB)<input id="productVideo" type="file" accept="video/mp4"></label>
+<div class="full"><strong style="font-size:13px">Mídias já cadastradas</strong><div id="existingMedia" class="media-admin-list"></div><small>Use Remover somente nas mídias que não deseja exibir. A exclusão é confirmada ao salvar o vaso.</small></div></div>
+<div class="actions"><button id="mediaPreviewBtn" type="button" class="secondary">Pré-visualizar galeria</button><button id="saveBtn">Salvar vaso</button><button id="cancelBtn" class="secondary">Cancelar</button><button id="deleteBtn" class="danger hidden">Excluir</button></div><div id="saveMsg"></div></div><dialog id="mediaPreviewDialog" aria-label="Prévia privada da galeria"><h2>Prévia privada do vaso</h2><p class="sub">Somente visualização. Não altera estoque, status ou catálogo.</p><div id="mediaPreviewStage"></div><div id="mediaPreviewStatus" aria-live="polite"></div><div class="actions"><button id="mediaPreviewPrev" type="button" class="secondary">Anterior</button><button id="mediaPreviewNext" type="button" class="secondary">Próxima</button><button id="mediaPreviewClose" type="button" class="secondary">Fechar</button></div></dialog></section></main>
 <script>
 const sb=supabase.createClient('https://cmzeojsbqrckvrcdhgqz.supabase.co','sb_publishable_yd_g8vW-7zMLNsh_NA0Ivg_Iqz2C_gg'),$=x=>document.getElementById(x);
 const fields=['code','name','description','display_order','price','stock','height_cm','diameter_cm','color','finish','collection','edition','status'];
@@ -91,9 +103,50 @@ async function show(s){$('login').classList.toggle('hidden',!!s);$('app').classL
 $('loginBtn').onclick=async()=>{msg('loginMsg','Entrando...');let{error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)msg('loginMsg','Não foi possível entrar: '+error.message,false)};
 $('logoutBtn').onclick=()=>sb.auth.signOut();$('newBtn').onclick=()=>edit();$('cancelBtn').onclick=()=>$('editor').classList.add('hidden');
 $('photo').onchange=e=>{let f=e.target.files[0];if(f){$('preview').src=URL.createObjectURL(f);$('preview').style.display='block'}};
-function edit(p=null){$('editor').classList.remove('hidden');$('editorTitle').textContent=p?'Editar vaso':'Novo vaso';$('id').value=p?.id||'';$('oldImage').value=p?.cover_image_url||'';fields.forEach(k=>$(k).value=p?.[k]??(k==='stock'?1:k==='status'?'available':''));$('preview').src=p?.cover_image_url||'';$('preview').style.display=p?.cover_image_url?'block':'none';$('photo').value='';$('deleteBtn').classList.toggle('hidden',!p);$('editor').scrollIntoView({behavior:'smooth'})}
+
+// Prévia local e privada: não consulta nem grava a tabela products.
+let previewItems=[],previewIndex=0;
+function drawPrivatePreview(){
+ const stage=$('mediaPreviewStage');stage.replaceChildren();
+ const item=previewItems[previewIndex];if(!item)return;
+ const el=document.createElement(item.type==='video'?'video':'img');
+ el.src=item.url;
+ if(item.type==='video'){el.controls=true;el.preload='metadata';el.playsInline=true}
+ else el.alt='Fotografia do vaso';
+ stage.append(el);
+ $('mediaPreviewStatus').textContent=(previewIndex+1)+' de '+previewItems.length+(item.type==='video'?' · Vídeo':' · Foto');
+ $('mediaPreviewPrev').disabled=previewIndex===0;
+ $('mediaPreviewNext').disabled=previewIndex===previewItems.length-1;
+}
+$('mediaPreviewBtn').onclick=()=>{
+ previewItems=[];
+ let cover=$('preview').src;
+ if($('preview').style.display!=='none'&&cover&&(cover.startsWith('blob:')||cover.startsWith('https://')))previewItems.push({type:'image',url:cover});
+ previewItems.push(...mediaEditing);
+ for(const f of $('extraPhotos').files)if(f.type.startsWith('image/'))previewItems.push({type:'image',url:URL.createObjectURL(f),local:true});
+ const f=$('productVideo').files[0];if(f)previewItems.push({type:'video',url:URL.createObjectURL(f),local:true});
+ if(!previewItems.length){msg('saveMsg','Selecione uma foto ou vídeo para visualizar.',false);return}
+ previewIndex=0;drawPrivatePreview();$('mediaPreviewDialog').showModal();
+};
+$('mediaPreviewPrev').onclick=()=>{if(previewIndex>0){previewIndex--;drawPrivatePreview()}};
+$('mediaPreviewNext').onclick=()=>{if(previewIndex<previewItems.length-1){previewIndex++;drawPrivatePreview()}};
+function closePrivatePreview(){
+ $('mediaPreviewDialog').close();$('mediaPreviewStage').replaceChildren();
+ previewItems.forEach(x=>{if(x.local)URL.revokeObjectURL(x.url)});previewItems=[];
+}
+$('mediaPreviewClose').onclick=closePrivatePreview;
+$('mediaPreviewDialog').addEventListener('close',()=>{if(previewItems.length){$('mediaPreviewStage').replaceChildren();previewItems.forEach(x=>{if(x.local)URL.revokeObjectURL(x.url)});previewItems=[]}});
+
+let mediaEditing=[];
+function normalMedia(items){return Array.isArray(items)?items.filter(x=>x&&['image','video'].includes(x.type)&&typeof x.url==='string'&&/^https:\/\//.test(x.url)).map(x=>({type:x.type,url:x.url})):[]}
+function renderMediaEditor(){const box=$('existingMedia');box.replaceChildren();mediaEditing.forEach((item,index)=>{let d=document.createElement('div');d.className='media-admin-item';let el=document.createElement(item.type==='video'?'video':'img');el.src=item.url;if(item.type==='video'){el.controls=true;el.preload='metadata'}else{el.alt='Foto adicional'}let btn=document.createElement('button');btn.className='secondary';btn.type='button';btn.textContent='Remover';btn.onclick=()=>{mediaEditing.splice(index,1);renderMediaEditor()};d.append(el,btn);box.append(d)});if(!mediaEditing.length)box.textContent='Nenhuma mídia adicional.'}
+async function uploadProductMedia(file,kind){const allow=kind==='video'?['video/mp4']:['image/jpeg','image/png','image/webp'];const limit=kind==='video'?40*1024*1024:8*1024*1024;if(!allow.includes(file.type))throw Error('Formato de '+kind+' não permitido: '+file.name);if(file.size>limit)throw Error('Arquivo muito grande: '+file.name);const ext=kind==='video'?'mp4':file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';const path='products/'+Date.now()+'-'+Math.random().toString(36).slice(2,12)+'.'+ext;const{error}=await sb.storage.from('product-images').upload(path,file,{contentType:file.type,upsert:false});if(error)throw Error('Falha no envio de '+file.name+': '+error.message);return sb.storage.from('product-images').getPublicUrl(path).data.publicUrl}
+
+function edit(p=null){$('editor').classList.remove('hidden');$('editorTitle').textContent=p?'Editar vaso':'Novo vaso';$('id').value=p?.id||'';$('oldImage').value=p?.cover_image_url||'';fields.forEach(k=>$(k).value=p?.[k]??(k==='stock'?1:k==='status'?'available':''));$('preview').src=p?.cover_image_url||'';$('preview').style.display=p?.cover_image_url?'block':'none';$('photo').value='';$('extraPhotos').value='';$('productVideo').value='';mediaEditing=normalMedia(p?.media_gallery);renderMediaEditor();$('deleteBtn').classList.toggle('hidden',!p);$('editor').scrollIntoView({behavior:'smooth'})}
 async function load(){let{data,error}=await sb.from('products').select('*').order('display_order',{ascending:true}).order('created_at',{ascending:false});if(error){$('products').textContent=error.message;return}$('products').innerHTML=data.length?'':'<p class="sub">Nenhum vaso cadastrado. Toque em “+ Novo vaso”.</p>';data.forEach(p=>{let d=document.createElement('div');d.className='product';let im=document.createElement('img');if(p.cover_image_url)im.src=p.cover_image_url;let i=document.createElement('div');let h=document.createElement('h3');h.textContent=p.name;let m=document.createElement('div');m.className='meta';m.textContent=(p.code||'')+' · R$ '+Number(p.price||0).toFixed(2).replace('.',',')+' · '+p.status+' · estoque '+p.stock;let b=document.createElement('button');b.className='secondary';b.textContent='Editar';b.onclick=()=>edit(p);i.append(h,m,b);d.append(im,i);$('products').append(d)})}
-$('saveBtn').onclick=async()=>{if(!$('name').value.trim()||!$('code').value.trim())return msg('saveMsg','Informe código e nome.',false);$('saveBtn').disabled=true;try{let image=$('oldImage').value,f=$('photo').files[0];if(f){let ext=(f.name.split('.').pop()||'jpg').toLowerCase(),path=Date.now()+'-'+slug($('code').value)+'.'+ext;let{error}=await sb.storage.from('product-images').upload(path,f);if(error)throw error;image=sb.storage.from('product-images').getPublicUrl(path).data.publicUrl}let p={};fields.forEach(k=>p[k]=$(k).value);p.display_order=Number(p.display_order||100);p.price=Number(p.price||0);p.stock=Number(p.stock||0);p.height_cm=p.height_cm?Number(p.height_cm):null;p.diameter_cm=p.diameter_cm?Number(p.diameter_cm):null;p.slug=slug(p.code+'-'+p.name);p.cover_image_url=image||null;p.updated_at=new Date().toISOString();let q=$('id').value?sb.from('products').update(p).eq('id',$('id').value):sb.from('products').insert(p),{error}=await q;if(error)throw error;msg('saveMsg','Vaso salvo com sucesso.');await load();setTimeout(()=>$('editor').classList.add('hidden'),600)}catch(e){msg('saveMsg','Erro: '+e.message,false)}finally{$('saveBtn').disabled=false}};
+$('saveBtn').onclick=async()=>{if(!$('name').value.trim()||!$('code').value.trim())return msg('saveMsg','Informe código e nome.',false);$('saveBtn').disabled=true;try{let image=$('oldImage').value,f=$('photo').files[0];if(f){let ext=(f.name.split('.').pop()||'jpg').toLowerCase(),path=Date.now()+'-'+slug($('code').value)+'.'+ext;let{error}=await sb.storage.from('product-images').upload(path,f);if(error)throw error;image=sb.storage.from('product-images').getPublicUrl(path).data.publicUrl}let p={};fields.forEach(k=>p[k]=$(k).value);p.display_order=Number(p.display_order||100);p.price=Number(p.price||0);p.stock=Number(p.stock||0);p.height_cm=p.height_cm?Number(p.height_cm):null;p.diameter_cm=p.diameter_cm?Number(p.diameter_cm):null;p.slug=slug(p.code+'-'+p.name);p.cover_image_url=image||null;
+let media=[...mediaEditing];const extra=[...$('extraPhotos').files];const video=$('productVideo').files[0];if(extra.length+media.filter(x=>x.type==='image').length>6)throw Error('Máximo de 6 fotos adicionais.');if(video&&media.some(x=>x.type==='video'))throw Error('Remova o vídeo anterior antes de enviar outro.');for(const file of extra)media.push({type:'image',url:await uploadProductMedia(file,'image')});if(video)media.push({type:'video',url:await uploadProductMedia(video,'video')});p.media_gallery=media;
+p.updated_at=new Date().toISOString();let q=$('id').value?sb.from('products').update(p).eq('id',$('id').value):sb.from('products').insert(p),{error}=await q;if(error)throw error;msg('saveMsg','Vaso salvo com sucesso.');await load();setTimeout(()=>$('editor').classList.add('hidden'),600)}catch(e){msg('saveMsg','Erro: '+e.message,false)}finally{$('saveBtn').disabled=false}};
 
 const brl=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const orderStatusLabel=s=>({pago:'Pago',aguardando_pagamento:'Aguardando pagamento',cancelado:'Cancelado'}[s]||s||'—');
